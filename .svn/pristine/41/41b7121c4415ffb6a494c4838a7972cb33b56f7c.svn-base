@@ -1,0 +1,1181 @@
+//
+//  TestViewController.m
+//  BaiyiSpeed
+//
+//  Created by Cooriyou on 14-8-29.
+//  Copyright (c) 2014年 AILK. All rights reserved.
+//
+
+#import "TestViewController.h"
+#import "AFURLConnectionByteSpeedMeasure.h"
+#import "AFURLConnectionOperation+AFURLConnectionByteSpeedMeasure.h"
+#import "AFHTTPRequestOperation.h"
+#include <dlfcn.h>
+#import "ASIHTTPRequest.h"
+#import "AppDelegate.h"
+#import "Tools/MBProgressHUD.h"
+#import "JSON.h"
+
+#import <CoreTelephony/CTCarrier.h>
+#import <CoreTelephony/CTTelephonyNetworkInfo.h>
+
+
+@interface TestViewController ()
+@property (weak, nonatomic) IBOutlet UIView *vContent;
+@property (weak, nonatomic) IBOutlet UIButton *btnBeginTest;
+@property (weak, nonatomic) IBOutlet UIButton *btnRetry;
+@property (weak, nonatomic) IBOutlet UIButton *btnNextTest;
+@property (weak, nonatomic) IBOutlet UILabel *lbSignalStrength;
+@property (weak, nonatomic) IBOutlet UILabel *lbWide;
+@property (weak, nonatomic) IBOutlet UIButton *btnB;
+@property (weak, nonatomic) IBOutlet UIButton *btnC;
+@property (weak, nonatomic) IBOutlet UIButton *btnD;
+
+@property( nonatomic ,strong) ASIHTTPRequest * request;
+
+@property(nonatomic,strong)MBProgressHUD* HUD;
+@property(atomic, strong) NSArray * downOpeartions;
+
+@property (nonatomic) double total;
+@property (nonatomic) NSInteger count;
+@property (nonatomic) NSInteger Signal;
+@property (nonatomic,strong)NSMutableArray* retList;
+
+@property (nonatomic) NSInteger nowPoint;
+
+
+@property(nonatomic, strong) NSMutableArray * operationSpeedList;
+@property(nonatomic, strong) NSMutableArray * operationSpeedList2;
+@property(nonatomic, strong) NSMutableArray * operationSpeedList3;
+@property(nonatomic, strong) NSMutableArray * operationSpeedList4;
+
+@end
+
+@implementation TestViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+- (void)viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+    [_HUD hide:YES];
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+ 
+    /*
+    
+     */
+//    NSLog(@"%@", [TestViewController getCellularProviderName]);
+    //self.navigationItem.hidesBackButton = YES;
+    _nowPoint = 0;
+    [_btnB setImage:[UIImage imageNamed:@"B"] forState:UIControlStateNormal];
+    [_btnC setImage:[UIImage imageNamed:@"C"] forState:UIControlStateNormal];
+    [_btnD setImage:[UIImage imageNamed:@"D"] forState:UIControlStateNormal];
+    self.retList = [NSMutableArray array];
+    
+    if ([[[UIDevice currentDevice]systemVersion]floatValue] < 7.0){
+        _vContent.frame = CGRectMake(_vContent.frame.origin.x , _vContent.frame.origin.y - 72, _vContent.frame.size.width,  _vContent.frame.size.height) ;
+       
+    }
+    [_btnNextTest setHidden:YES];
+    [_btnRetry setHidden:YES];
+    NSLog(@"信号强度:%i", getSignalStrength());
+    
+    _HUD = [[MBProgressHUD alloc] initWithView:self.view];
+    [self.view addSubview:_HUD];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+
+
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+- (IBAction)doTest:(id)sender{
+    [self downloadTest2];
+}
+
+- (IBAction)doRetry:(id)sender{
+    [self downloadTest2];
+}
+
+- (IBAction)doNextTest:(id)sender{
+    NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithInt:_nowPoint],@"point",[NSNumber numberWithInt:_Signal],@"signal",[NSNumber numberWithInt:_total],@"speed", nil];
+    [self.retList addObject:dic];
+    ++_nowPoint;
+    
+    switch (_nowPoint) {
+        case 1:
+            [_btnB setImage:[UIImage imageNamed:@"BS"] forState:UIControlStateNormal];
+            break;
+        case 2:
+            [_btnC setImage:[UIImage imageNamed:@"CS"] forState:UIControlStateNormal];
+            break;
+        case 3:
+            [_btnD setImage:[UIImage imageNamed:@"DS"] forState:UIControlStateNormal];
+            break;
+            
+        default:
+            NSLog(@"%@",_retList);
+            [self uploadResult];
+            break;
+    }
+    
+    [_btnBeginTest setHidden:NO];
+    [_btnNextTest setHidden:YES];
+    [_btnRetry setHidden:YES];
+    
+}
+
+- (void)uploadResult{
+    if ([_retList count] > 0 ) {
+        NSInteger signal_t = 0;
+        NSInteger speed_t = 0;
+        for (NSDictionary *dic in _retList) {
+            signal_t += [(NSNumber *)[dic objectForKey:@"signal"]intValue];
+            speed_t += [(NSNumber *)[dic objectForKey:@"speed"]intValue];
+        }
+        AppDelegate *app = [[UIApplication sharedApplication]delegate];
+        app.signal = (signal_t/(NSInteger)[_retList count]);
+        app.speed = (speed_t/[_retList count]);
+        
+        NSDictionary * cellularInfoDict = [AppDelegate getCellularProviderName];
+        NSString * networkCode = [cellularInfoDict objectForKey:@"MobileNetworkCode"];
+        NSString * networkParaStr = @"cmcNum";
+        if ([networkCode isEqualToString:@"01"] ||
+            [networkCode isEqualToString:@"06"]) {
+            networkParaStr = @"cucNum";
+        } else if ([networkCode isEqualToString:@"00"] ||
+                   [networkCode isEqualToString:@"02"] ||
+                   [networkCode isEqualToString:@"07"]) {
+            networkParaStr = @"cmcNum";
+        } else if ([networkCode isEqualToString:@"03"] ||
+                   [networkCode isEqualToString:@"05"] ||
+                   [networkCode isEqualToString:@"20"]) {
+            networkParaStr = @"ctcNum";
+        }
+        
+        
+        NSURL *url = [NSURL URLWithString:@"http://www.101test.com/sets/speedtest/uploadResult"];
+        
+        // \"signalStrength\": %d\
+        
+        NSMutableString * info = nil;
+        info = [NSMutableString stringWithFormat:@"{\
+                \"signalTester\": %d,\
+                \"addressId\": %d\
+                \"%@\": %d\
+                }",
+                app.signalTester,
+                app.addressId,
+               // app.signal,
+                networkParaStr,
+                app.speed
+                ];
+        
+        NSDictionary * infoDict = [info JSONValue];
+        NSMutableData *tempJsonData = nil;
+        if ([NSJSONSerialization isValidJSONObject:infoDict])
+        {
+            NSError *error;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:infoDict options:NSJSONWritingPrettyPrinted error: &error];
+            tempJsonData = [NSMutableData dataWithData:jsonData];
+            
+            NSLog(@"%@",[[NSString alloc]initWithData:tempJsonData encoding:NSUTF8StringEncoding]);
+        }
+        
+        
+        self.request = [ASIHTTPRequest requestWithURL:url];
+        [self.request setDelegate:self];
+        [self.request addRequestHeader:@"Content-Type" value:@"application/json; encoding=utf-8"];
+        [self.request addRequestHeader:@"Accept" value:@"application/json"];
+        [self.request setRequestMethod:@"POST"];
+        [self.request setPostBody:tempJsonData];
+        [self.request startAsynchronous];
+        _HUD.labelText = @"测试结果提交中，请稍后";
+        [_HUD show:YES];
+    }
+}
+
+- (void)requestStarted:(ASIHTTPRequest *)request{
+    NSLog(@"%@",@"requestStarted");
+    
+}
+
+- (void)requestFailed:(ASIHTTPRequest *)request{
+    NSLog(@"%@",request.error);
+    [_HUD setLabelText:@"请求失败"];
+    [_HUD hide:YES afterDelay:1];
+}
+
+- (void)requestFinished:(ASIHTTPRequest *)request{
+    //    NSLog(@"%@",request.responseString);
+    
+    if (request.tag == 1001) {
+        if (request.responseStatusCode == 404) {
+            NSLog(@"%@",@"404");
+            [_HUD setLabelText:@"404你懂得"];
+        } else {
+            //request.timeOutSeconds
+        }
+    }
+    
+    if (request.responseStatusCode == 404) {
+        NSLog(@"%@",@"404");
+        [_HUD setLabelText:@"404你懂得"];
+    } else {
+        NSString * respStr = request.responseString;
+        NSDictionary * dict = [respStr JSONValue];
+        NSLog(@"RET:\n%@",dict);
+        NSNumber * code = [dict objectForKey:@"code"];
+        if ([code intValue] == 0) {   // login success
+            NSDictionary* data = [dict objectForKey:@"data"];
+            NSNumber * errorcode = [data objectForKey:@"errorCode"];
+            if ([errorcode intValue] == 0) {  // success
+                [_HUD setLabelText:@"测试结果提交成功"];
+                [self performSegueWithIdentifier:@"pushResult" sender:self.btnNextTest];
+            }else{
+                [_HUD setLabelText:[NSString stringWithFormat:@"测试结果提交失败，code = %d",[errorcode intValue]]];
+            }
+        }else{
+            [_HUD setLabelText:@"测试结果提交失败"];
+        }
+        [_HUD hide:YES afterDelay:1];
+    }
+}
+
+#pragma mark - Test Action
+
+// 获取信号强度
+int getSignalStrength()
+{
+	void *libHandle = dlopen("/System/Library/Frameworks/CoreTelephony.framework/CoreTelephony", RTLD_LAZY);
+	int (*CTGetSignalStrength)();
+	CTGetSignalStrength = dlsym(libHandle, "CTGetSignalStrength");
+	if( CTGetSignalStrength == NULL) NSLog(@"Could not find CTGetSignalStrength");
+	int result = CTGetSignalStrength();
+	dlclose(libHandle);
+	return result;
+}
+
+
+// 下载速度测试
+- (void)downloadTest{
+    
+    _total = 0;
+    _count = 0;
+    _HUD.labelText = @"正在测试，请稍后";
+    [_HUD show:YES];
+    
+    /* 1、下载请求创建 */
+    AppDelegate *app = [[UIApplication sharedApplication]delegate];
+    NSString* url = app.downloadUrl;
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
+    
+    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet = operation;
+    operation.downloadSpeedMeasure.active = YES;
+
+    /* 2、下载完成后Block回调 */
+    [operation setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish!");
+        //NSLog(@"%@",operation.downloadSpeedMeasure.humanReadableSpeed);
+        double speed = _total / _count * 1;
+//        [self.retList addObject:[NSNumber numberWithInt:speed]];
+//        _lbSignalStrength.text = [NSString stringWithFormat:@"%d",_Signal/_count];
+        int n =getSignalStrength();
+        _Signal = n/2 -104;
+        _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+        _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+        _HUD.labelText = @"测试完成";
+        [_btnBeginTest setHidden:YES];
+        [_btnNextTest setHidden:NO];
+        [_btnRetry setHidden:NO];
+        [_HUD hide:YES afterDelay:1];
+    }];
+
+    /* 3、下载进行时Block回调 */
+    [operation setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        double speedInBytesPerSecond = operationSet.downloadSpeedMeasure.speed;
+        NSLog(@"speedInBytesPerSecond:%f",speedInBytesPerSecond);
+        
+        NSString *humanReadableSpeed = operationSet.downloadSpeedMeasure.humanReadableSpeed;
+        
+//        NSTimeInterval remainingTimeInSeconds = [operation.downloadSpeedMeasure remainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        NSString *humanReadableRemaingTime = [operationSet.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"totalBytesRead:%lli",totalBytesRead);
+        
+        NSLog(@"DOWN Speed:%@, RemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+           
+            
+             double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            _total += curSpeed;
+//            if (_total < curSpeed ) {
+//                _total = curSpeed;
+//                NSLog(@"cur max Speed%0.2f", _total);
+//            }
+            _count ++;
+        }
+       
+    }];
+    
+    [operation start];
+}
+
+// 上传速度测试
+- (void)uploadTest{
+    
+    /* 1、上传请求创建 */
+    NSError * err = nil;
+    NSMutableURLRequest *request = [[AFHTTPRequestSerializer serializer] multipartFormRequestWithMethod:@"POST" URLString:@"http://cesu.qscm.net/speedtestsvr/testupload.php" parameters:nil constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
+        
+        NSString *imagePath = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"bin"];
+        NSError * error = nil;
+        [formData appendPartWithFileURL:[NSURL fileURLWithPath:imagePath] name:@"file" fileName:@"filename.pdf" mimeType:@"image/png" error:&error];
+        NSLog(@"%@",error);
+    } error:&err];
+    NSLog(@"%@",err);
+    
+    
+    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet = operation;
+
+    operation.uploadSpeedMeasure.active = YES;
+    
+    /* 2、上传完成后Block回调 */
+    [operation setCompletionBlock:^(void){
+        NSLog(@"%@",@"OKOK!");
+    }];
+    
+    /* 3、上传进行时Block回调 */
+    [operation setUploadProgressBlock:^(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpected){
+//        double speedInBytesPerSecond = operation.uploadSpeedMeasure.speed;
+        NSString *humanReadableSpeed = operationSet.uploadSpeedMeasure.humanReadableSpeed;
+        
+//        NSTimeInterval remainingTimeInSeconds = [operation.uploadSpeedMeasure remainingTimeOfTotalSize:totalBytesExpected numberOfCompletedBytes:totalBytesWritten];
+        NSString *humanReadableRemaingTime = [operationSet.uploadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpected numberOfCompletedBytes:totalBytesWritten];
+        
+        NSLog(@"UP humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+    }];
+    [operation start];
+    
+}
+
+-(NSMutableArray *) bubble_sort:(NSMutableArray *) arr_source {
+    if([arr_source count] <= 1) {
+        return arr_source;
+    }
+    int i;
+    int j;
+    int length = [arr_source count];
+    NSNumber * l_1;
+    NSNumber * l_2;
+    
+    NSMutableArray *tmp_source = [[NSMutableArray alloc] init];
+    
+    for(j = 0; j < length; j++) {
+        for(i = 1; i < length - j; i++) {
+            l_1 = [arr_source objectAtIndex:i-1] ;
+            l_2 = [arr_source objectAtIndex:i] ;
+            if(l_1.doubleValue < l_2.doubleValue) {
+                [tmp_source addObject:l_1];
+                [tmp_source addObject:l_2];
+            } else {
+                [tmp_source addObject:l_2];
+                [tmp_source addObject:l_1];
+            }
+        }
+    }
+    
+    return tmp_source;
+}
+
+- (double)speedGetOf:(NSMutableArray *)arr{
+    double realSpeed = 0;
+    
+    if (arr.count < 50) {
+        return 1;
+    }
+
+    NSMutableArray *sortedArray = [NSMutableArray arrayWithArray:arr];
+    
+//    [sortedArray sortedArrayUsingComparator:^NSComparisonResult(id obj1, id obj2) {
+//        //这里的代码可以参照上面compare:默认的排序方法，也可以把自定义的方法写在这里，给对象排序
+//        NSComparisonResult result = [obj1 compare:obj2];
+//        return result;
+//    }];
+    NSSortDescriptor *mySorter = [[NSSortDescriptor alloc] initWithKey:@"doubleValue" ascending:NO];
+    [sortedArray sortUsingDescriptors:[NSArray arrayWithObject:mySorter]];
+    //sortedArray = [self bubble_sort:sortedArray];
+    
+    NSLog(@"%@", sortedArray);
+    
+    long count = sortedArray.count;
+    
+    long beginIndex = count * 0.1;
+    long endIndex = count * 0.3;
+    
+    NSMutableArray * lastArr = [NSMutableArray arrayWithCapacity:0];
+    for (long i = beginIndex; i < endIndex; i ++) {
+        [lastArr addObject:[sortedArray objectAtIndex:i]];
+    }
+    NSLog(@"%@", lastArr);
+    
+    double allSpeeds = 0;
+    for (NSNumber * str in lastArr) {
+        allSpeeds += [str doubleValue];
+    }
+    
+    realSpeed = allSpeeds / lastArr.count;
+    NSLog(@"allSpeeds:%f,lastArr.count:%i",allSpeeds, (int)lastArr.count);
+    if (lastArr.count == 0) {
+        NSLog(@"the arr:%@",arr);
+        return 0;
+    }
+    return realSpeed;
+}
+
+- (void)downloadTest2{
+    _HUD.labelText = @"正在测试，请稍后";
+    
+    [[NSURLCache sharedURLCache] removeAllCachedResponses];
+    
+    [_HUD show:YES];
+    
+    __block double line1Speed = 0;
+    __block double line1Count = 0;
+    __block double line2Speed = 0;
+    __block double line2Count = 0;
+    __block double line3Speed = 0;
+    __block double line3Count = 0;
+    __block double line4Speed = 0;
+    __block double line4Count = 0;
+    
+    
+    self.operationSpeedList = [NSMutableArray arrayWithCapacity:0];
+    __weak NSMutableArray * opSpeedList = self.operationSpeedList;
+    
+    self.operationSpeedList2 = [NSMutableArray arrayWithCapacity:0];
+    __weak NSMutableArray * opSpeedList2 = self.operationSpeedList2;
+    self.operationSpeedList3 = [NSMutableArray arrayWithCapacity:0];
+    __weak NSMutableArray * opSpeedList3 = self.operationSpeedList3;
+    self.operationSpeedList4 = [NSMutableArray arrayWithCapacity:0];
+    __weak NSMutableArray * opSpeedList4 = self.operationSpeedList4;
+    
+    __weak id accessSelf = self;
+    
+    
+    __block double line5Speed = 0;
+    __block double line5Count = 0;
+    __block double line6Speed = 0;
+    __block double line6Count = 0;
+    __block double line7Speed = 0;
+    __block double line7Count = 0;
+    __block double line8Speed = 0;
+    __block double line8Count = 0;
+    __block double line9Speed = 0;
+    __block double line9Count = 0;
+    __block double line10Speed = 0;
+    __block double line10Count = 0;
+    __block int endCount = 0;
+    
+    /* 1、下载请求创建 */
+    AppDelegate *app = (AppDelegate* )[[UIApplication sharedApplication]delegate];
+    NSString* url = app.downloadUrl;
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
+    AFHTTPRequestOperation *operation1 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet = operation1;
+    operation1.downloadSpeedMeasure.active = YES;
+    
+    /* 3、下载进行时Block回调 */
+    [operation1 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [1]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 1) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                for (AFHTTPRequestOperation * op in self.downOpeartions) {
+                    if (op != operationSet) {
+
+                        [op cancel];
+                    }
+                }
+                self.downOpeartions = nil;
+                double speed ;//= (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1) ;// + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                speed = [accessSelf speedGetOf:opSpeedList] + [accessSelf speedGetOf:opSpeedList2] + [self speedGetOf:opSpeedList3] +[self speedGetOf:opSpeedList4];
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+
+    /* 2、下载进行时Block回调 */
+    [operation1 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [1]");
+        NSString *humanReadableSpeed = operationSet.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN Speed:%@, RemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            if (![operationSet isCancelled]) {
+                [opSpeedList addObject:[NSNumber numberWithDouble:curSpeed]];
+                line1Speed += curSpeed;
+                line1Count ++;
+            }
+        }
+        
+    }];
+    
+    //[operation1 start];
+    
+    
+   ////////   Line 2 ///////
+    
+    
+    AFHTTPRequestOperation *operation2 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet2 = operation2;
+    operation2.downloadSpeedMeasure.active = YES;
+    [operation2 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [2]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 1) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                for (AFHTTPRequestOperation * op in self.downOpeartions) {
+                    if (op != operationSet2) {
+
+                        [op cancel];
+                    }
+                }
+                self.downOpeartions = nil;
+                double speed = 0 ;//= (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1);// + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1) ;// + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                speed = [accessSelf speedGetOf:opSpeedList] + [accessSelf speedGetOf:opSpeedList2] + [self speedGetOf:opSpeedList3] +[self speedGetOf:opSpeedList4];
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation2 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [2]");
+        NSString *humanReadableSpeed = operationSet2.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet2.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            if (![operationSet2 isCancelled]) {
+                [opSpeedList2 addObject:[NSNumber numberWithDouble:curSpeed]];
+                line2Speed += curSpeed;
+                line2Count ++;
+            }
+        }
+        
+    }];
+
+//    [operation2 start];
+    
+    
+    ////////   Line 3 ///////
+    AFHTTPRequestOperation *operation3 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet3 = operation3;
+    operation3.downloadSpeedMeasure.active = YES;
+    [operation3 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [3]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 1) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                for (AFHTTPRequestOperation * op in self.downOpeartions) {
+                    if (op != operationSet3) {
+
+                        [op cancel];
+                    }
+                }
+                self.downOpeartions = nil;
+                double speed = 0 ;// (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1)  ;//+ (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                speed = [accessSelf speedGetOf:opSpeedList] + [accessSelf speedGetOf:opSpeedList2] + [accessSelf speedGetOf:opSpeedList3] +[accessSelf speedGetOf:opSpeedList4];
+                
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation3 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [3]");
+        NSString *humanReadableSpeed = operationSet3.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet3.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            if (![operationSet3 isCancelled]) {
+                [opSpeedList3 addObject:[NSNumber numberWithDouble:curSpeed]];
+                line3Speed += curSpeed;
+                line3Count ++;}
+        }
+        
+    }];
+    
+   // [operation3 start];
+    
+    ////////   Line 4 ///////
+    AFHTTPRequestOperation *operation4 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet4 = operation4;
+    operation4.downloadSpeedMeasure.active = YES;
+    [operation4 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [4]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 1) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                for (AFHTTPRequestOperation * op in self.downOpeartions) {
+                    if (op != operationSet4) {
+                        [op cancel];
+                    }
+                    
+                }
+                self.downOpeartions = nil;
+                double speed = 0;//(line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1);//  + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                speed = [accessSelf speedGetOf:opSpeedList] + [accessSelf speedGetOf:opSpeedList2] + [accessSelf speedGetOf:opSpeedList3] +[accessSelf speedGetOf:opSpeedList4];
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation4 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [4]");
+        NSString *humanReadableSpeed = operationSet4.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet4.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            if (![operationSet4 isCancelled]) {
+                [opSpeedList4 addObject:[NSNumber numberWithDouble:curSpeed]];
+                line4Speed += curSpeed;
+                line4Count ++;}
+        }
+        
+    }];
+    self.downOpeartions = [NSArray arrayWithObjects:operation1, operation2, operation3, operation4, nil];
+//    [operation1 setQueuePriority:NSOperationQueuePriorityVeryHigh];
+//    [operation2 setQueuePriority:NSOperationQueuePriorityVeryHigh];
+//    [operation3 setQueuePriority:NSOperationQueuePriorityVeryHigh];
+//    [operation4 setQueuePriority:NSOperationQueuePriorityVeryHigh];
+
+    [operation1 start];
+    [operation2 start];
+    [operation3 start];
+    [operation4 start];
+    
+  
+
+    
+    
+    /*
+    
+    ////////   Line 5 ///////
+    AFHTTPRequestOperation *operation5 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet5 = operation5;
+    operation5.downloadSpeedMeasure.active = YES;
+    [operation5 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [5]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 10) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                double speed = (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1)  + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation5 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [5]");
+        NSString *humanReadableSpeed5 = operationSet5.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime5 = [operationSet5.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed5, humanReadableRemaingTime5);
+        if ([humanReadableSpeed5 intValue] != 0) {
+            
+            double curSpeed5 = [humanReadableSpeed5 doubleValue];
+            if ([humanReadableSpeed5 rangeOfString:@"MB"].length > 0) {
+                curSpeed5 = curSpeed5 * 1024;
+            } else if([humanReadableSpeed5 rangeOfString:@"GB"].length > 0) {
+                curSpeed5 = curSpeed5 * 1024 * 1024;
+            }
+            line5Speed += curSpeed5;
+            line5Count ++;
+        }
+        
+    }];
+    
+   
+    
+    [operation5 start];
+    
+    ////////   Line 6 ///////
+    AFHTTPRequestOperation *operation6 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet6 = operation6;
+    operation6.downloadSpeedMeasure.active = YES;
+    [operation6 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [6]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 10) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                double speed = (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1)  + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation6 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [6]");
+        NSString *humanReadableSpeed = operationSet6.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet6.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            line6Speed += curSpeed;
+            line6Count ++;
+        }
+        
+    }];
+    
+    [operation6 start];
+    
+    
+    ////////   Line 7 ///////
+    AFHTTPRequestOperation *operation7 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet7 = operation7;
+    operation7.downloadSpeedMeasure.active = YES;
+    [operation7 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [7]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 10) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                double speed = (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1)  + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation7 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [7]");
+        NSString *humanReadableSpeed = operationSet7.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet7.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            line7Speed += curSpeed;
+            line7Count ++;
+        }
+        
+    }];
+    
+    [operation7 start];
+    
+    
+    ////////   Line 8 ///////
+    AFHTTPRequestOperation *operation8 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet8 = operation8;
+    operation8.downloadSpeedMeasure.active = YES;
+    [operation8 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [8]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 10) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                double speed = (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1)  + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation8 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [8]");
+        NSString *humanReadableSpeed = operationSet8.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet8.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            line8Speed += curSpeed;
+            line8Count ++;
+        }
+        
+    }];
+    
+    [operation8 start];
+    
+    ////////   Line 9 ///////
+    AFHTTPRequestOperation *operation9 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet9 = operation9;
+    operation9.downloadSpeedMeasure.active = YES;
+    [operation9 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [9]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 10) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+                double speed = (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1)  + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation9 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [9]");
+        NSString *humanReadableSpeed = operationSet9.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet9.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            line9Speed += curSpeed;
+            line9Count ++;
+        }
+        
+    }];
+    
+    [operation9 start];
+    
+    ////////   Line 10 ///////
+   AFHTTPRequestOperation *operation10 = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    __weak  AFHTTPRequestOperation *operationSet10 = operation10;
+    operation10.downloadSpeedMeasure.active = YES;
+    [operation10 setCompletionBlock:^(void){
+        NSLog(@"%@",@"Download finish [10]!");
+        @synchronized(self){
+            endCount++;
+            if (endCount == 10) {
+                line10Count = line10Count == 0 ? 1:line10Count;
+                line9Count = line9Count == 0 ? 1:line9Count;
+                line8Count = line8Count == 0 ? 1:line8Count;
+                line7Count = line7Count == 0 ? 1:line7Count;
+                line6Count = line6Count == 0 ? 1:line6Count;
+                line5Count = line5Count == 0 ? 1:line5Count;
+                line4Count = line4Count == 0 ? 1:line4Count;
+                line3Count = line3Count == 0 ? 1:line3Count;
+                line2Count = line2Count == 0 ? 1:line2Count;
+                line1Count = line1Count == 0 ? 1:line1Count;
+
+                double speed = (line1Speed / line1Count * 1) + (line2Speed / line2Count * 1) + (line3Speed / line3Count * 1) + (line4Speed / line4Count * 1)  + (line5Speed / line5Count * 1) + (line6Speed / line6Count * 1) + (line7Speed / line7Count * 1)  + (line8Speed / line8Count * 1) + (line9Speed / line9Count * 1) + (line10Speed / line10Count * 1);
+                _total = speed;
+                _count = 1;
+                int n =getSignalStrength();
+                _Signal = n/2 -104;
+                _lbSignalStrength.text = [NSString stringWithFormat:@"%d",n/2 - 104];
+                _lbWide.text = [NSString stringWithFormat:@"%0.2f KB/s",speed];
+                _HUD.labelText = @"测试完成";
+                [_btnBeginTest setHidden:YES];
+                [_btnNextTest setHidden:NO];
+                [_btnRetry setHidden:NO];
+                [_HUD hide:YES afterDelay:1];
+            }
+        }
+        
+    }];
+    [operation10 setDownloadProgressBlock:^(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead) {
+        NSLog(@"Download begin [10]");
+        NSString *humanReadableSpeed = operationSet10.downloadSpeedMeasure.humanReadableSpeed;
+        NSString *humanReadableRemaingTime = [operationSet10.downloadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpectedToRead numberOfCompletedBytes:totalBytesRead];
+        
+        NSLog(@"DOWN humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
+        if ([humanReadableSpeed intValue] != 0) {
+            
+            double curSpeed = [humanReadableSpeed doubleValue];
+            if ([humanReadableSpeed rangeOfString:@"MB"].length > 0) {
+                curSpeed = curSpeed * 1024;
+            } else if([humanReadableSpeed rangeOfString:@"GB"].length > 0) {
+                curSpeed = curSpeed * 1024 * 1024;
+            }
+            line10Speed += curSpeed;
+            line10Count ++;
+        }
+        
+    }];
+    
+    [operation10 start];
+*/
+    
+}
+
++(NSDictionary* )getCellularProviderName
+{
+    CTTelephonyNetworkInfo *netInfo = [[CTTelephonyNetworkInfo alloc]init];
+    CTCarrier*carrier = [netInfo subscriberCellularProvider];
+
+    NSLog(@"carrier:%@",carrier);
+    NSDictionary *imsi = nil;
+    if (carrier!=NULL) {
+        NSMutableDictionary *dic=[[NSMutableDictionary alloc] init];
+        [dic setObject:[carrier carrierName] forKey:@"Carriername"];
+        [dic setObject:[carrier mobileCountryCode] forKey:@"MobileCountryCode"];
+        [dic setObject:[carrier mobileNetworkCode]forKey:@"MobileNetworkCode"];
+        [dic setObject:[carrier isoCountryCode] forKey:@"ISOCountryCode"];
+        [dic setObject:[carrier allowsVOIP]?@"YES":@"NO" forKey:@"AllowsVOIP"];
+        imsi = dic;
+    }
+    return imsi;//cellularProviderName;
+}
+- (IBAction)callTelphone:(id)sender {
+    [((AppDelegate *)[UIApplication sharedApplication].delegate) callTelphone];
+}
+
+@end

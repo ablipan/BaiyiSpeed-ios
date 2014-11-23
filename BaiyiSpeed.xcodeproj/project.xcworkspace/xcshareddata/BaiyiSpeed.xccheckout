@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>EA76AA55-3E86-4574-AFC9-43B2863CA965</string>
+	<key>IDESourceControlProjectName</key>
+	<string>BaiyiSpeed</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>b470d846-ee59-4430-b3d2-89e6f4617cba++3947</key>
+		<string>http://124.207.3.10:28013/svn/MVNO/Trunk/MVNO_DEV_CRM/mvno-ios/BaiyiSpeed-0912</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>BaiyiSpeed.xcodeproj</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>b470d846-ee59-4430-b3d2-89e6f4617cba++3947</key>
+		<string>../..</string>
+	</dict>
+	<key>IDESourceControlProjectRepositoryRootDictionary</key>
+	<dict>
+		<key>b470d846-ee59-4430-b3d2-89e6f4617cba++3947</key>
+		<string>http://124.207.3.10:28013/svn/MVNO</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>http://124.207.3.10:28013/svn/MVNO/Trunk/MVNO_DEV_CRM/mvno-ios/BaiyiSpeed-0912/BaiyiSpeed.xcodeproj</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>b470d846-ee59-4430-b3d2-89e6f4617cba++3947</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.subversion</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>b470d846-ee59-4430-b3d2-89e6f4617cba++3947</string>
+			<key>IDESourceControlWCCName</key>
+			<string>BaiyiSpeed-0912</string>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,655 @@
+//
+//  InputViewController.m
+//  BaiyiSpeed
+//
+//  Created by Cooriyou on 14-8-28.
+//  Copyright (c) 2014年 AILK. All rights reserved.
+//
+
+#import "InputViewController.h"
+#import "ASIHTTPRequest.h"
+#import "AppDelegate.h"
+#import "Tools/MBProgressHUD.h"
+#import "JSON.h"
+#import "BMapKit.h"
+#import "PickerView.h"
+#import "DDList.h"
+#import "PassValueDelegate.h"
+#import "FMDatabase.h"
+
+@implementation CollegeInfo
+
+- (NSString*)description{
+    return self.collegeName;
+}
+
+@end
+
+@interface InputViewController () <UIPickerViewHiddenDelegate, BMKLocationServiceDelegate, BMKPoiSearchDelegate, UITextFieldDelegate, UISearchBarDelegate, PassValueDelegate, UIAlertViewDelegate>{
+    
+    BMKLocationService* _locService;
+    CGPoint  centerPoint;
+    UISearchBar * _searchBar;
+    UISearchBar * currentSearchBar;
+    DDList				 *_ddList;
+    UISearchBar * _collegeSearchBar;
+
+}
+@property(nonatomic ,strong) NSMutableArray * collegeArrays;
+
+
+@property(nonatomic, strong) BMKLocationService* locService;
+@property(nonatomic, strong) BMKPoiSearch * search;
+@property(nonatomic, strong) NSMutableArray * schoolInfoArray;
+@property(nonatomic, strong) NSMutableArray *tableNameList;
+
+@property (weak, nonatomic) IBOutlet UITextField *txCollege;
+@property (weak, nonatomic) IBOutlet UITextField *txCity;
+@property (weak, nonatomic) IBOutlet UITextField *txAddress;
+
+@property (weak, nonatomic) IBOutlet UITextField *txSeatNumber;
+@property (weak, nonatomic) IBOutlet UIImageView *btnNext;
+@property (weak, nonatomic) IBOutlet UIControl *vContent;
+
+@property( nonatomic ,strong) ASIHTTPRequest * request;
+@property(nonatomic,strong)MBProgressHUD* HUD;
+
+@end
+
+@implementation InputViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+- (void)queryData {
+    debugMethod();
+    NSString *dbPath = [[NSBundle mainBundle] pathForResource:@"college" ofType:@"db"];
+    self.collegeArrays = [NSMutableArray arrayWithCapacity:1000];
+    FMDatabase * db = [FMDatabase databaseWithPath:dbPath];
+    if ([db open]) {
+        NSString * sql = @"select * from campus";
+        FMResultSet * rs = [db executeQuery:sql];
+        while ([rs next]) {
+            int userId = [rs intForColumn:@"id"];
+            CollegeInfo * college = [[CollegeInfo alloc] init];
+            NSString * name = [rs stringForColumn:@"name"];
+            NSString * city = [rs stringForColumn:@"city"];
+            college.collegeName = name;
+            college.cityOfCollege = city;
+            [self.collegeArrays addObject:college];
+            debugLog(@"user id = %d, name = %@, pass = %@", userId, name, city);
+        }
+        [db close];
+    }
+    
+    
+    
+}
+
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    if ([[[UIDevice currentDevice]systemVersion]floatValue] < 7.0){
+        _vContent.frame = CGRectMake(_vContent.frame.origin.x , _vContent.frame.origin.y - 72, _vContent.frame.size.width,  _vContent.frame.size.height) ;
+        
+    }
+    
+    [self queryData];
+    
+    _txCollege.hidden = YES;
+    _collegeSearchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(_txCollege.frame.origin.x - 13 , _txCollege.frame.origin.y, 220, _txCollege.frame.size.height)];// 初始化，不解释
+    [_vContent addSubview:_collegeSearchBar];
+    _collegeSearchBar.backgroundImage = [self createImageWithColor:[UIColor clearColor]];
+    _collegeSearchBar.delegate = self;
+    [_collegeSearchBar setImage:_collegeSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconSearch state:UIControlStateNormal];
+    [_collegeSearchBar setImage:_collegeSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
+    [_collegeSearchBar setImage:_collegeSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconResultsList state:UIControlStateNormal];
+    
+    [_collegeSearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
+    _collegeSearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
+    _collegeSearchBar.placeholder = @"学校";
+    
+    
+    
+    
+    
+    
+    _txAddress.hidden = YES;
+    _searchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(_txAddress.frame.origin.x - 10 , _txAddress.frame.origin.y, 220, _txAddress.frame.size.height)];// 初始化，不解释
+    [_vContent addSubview:_searchBar];
+    _searchBar.backgroundImage = [self createImageWithColor:[UIColor clearColor]];
+    _searchBar.placeholder = @"";
+    _searchBar.delegate = self;
+    [_searchBar setImage:_searchBar.backgroundImage forSearchBarIcon:UISearchBarIconSearch state:UIControlStateNormal];
+    [_searchBar setImage:_searchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
+    [_searchBar setImage:_searchBar.backgroundImage forSearchBarIcon:UISearchBarIconResultsList state:UIControlStateNormal];
+
+    [_searchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
+    _searchBar.searchTextPositionAdjustment = UIOffsetMake(-27, 0);
+    _searchBar.placeholder = @"教室";
+    
+    /*
+    AppDelegate *app = (AppDelegate *)[[UIApplication sharedApplication]delegate];
+    if ([app.addressList count] != 0) {
+        NSDictionary *dic = [app.addressList objectAtIndex:0];
+        _txCollege.text = (NSString *)[dic objectForKey:@"college"];
+        _txCity.text = (NSString *)[dic objectForKey:@"city"];
+        //_txAddress.text = (NSString *)[dic objectForKey:@"address"];
+        _searchBar.text = (NSString *)[dic objectForKey:@"address"];
+        _txSeatNumber.text = [(NSNumber *)[dic objectForKey:@"seatNumber"]stringValue];
+    }*/
+  
+    
+    //自定义返回按钮
+    UIImage *backButtonImage = [[UIImage imageNamed:@"nav_backbar.png"] resizableImageWithCapInsets:UIEdgeInsetsMake(0, 15, 0, 0)];
+    [[UIBarButtonItem appearance] setBackButtonBackgroundImage:backButtonImage forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+    //将返回按钮的文字position设置不在屏幕上显示
+    [[UIBarButtonItem appearance] setBackButtonTitlePositionAdjustment:UIOffsetMake(NSIntegerMin, NSIntegerMin) forBarMetrics:UIBarMetricsDefault];
+    
+    
+    UIButton * collegeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    collegeBtn.frame = CGRectMake(CGRectGetMaxX(self.txCollege.frame), self.txCollege.frame.origin.y, 50, 40);
+    [_vContent addSubview:collegeBtn];
+    [collegeBtn addTarget:self action:@selector(textFieldClicked:) forControlEvents:UIControlEventTouchUpInside];
+
+    
+    self.txCollege.delegate = self;
+    self.txAddress.delegate = self;
+    self.txCity.delegate = self;
+    self.txSeatNumber.delegate = self;
+    
+    
+    self.locService = [[BMKLocationService alloc]init];
+    
+    
+    _ddList = [[DDList alloc] initWithStyle:UITableViewStylePlain];
+	_ddList._delegate = self;
+	[_vContent addSubview:_ddList.view];
+    
+	[_ddList.view setFrame:CGRectMake(_txAddress.frame.origin.x - 46  , _txAddress.frame.origin.y + 37, _txAddress.frame.size.width + 80, 0)];
+    
+    
+    
+}
+
+- (void)backButtonClicked:(id)sender{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+-(void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear: animated];
+    _locService.delegate = self;
+
+}
+
+- (void)viewDidAppear:(BOOL)animated{
+    [super viewDidAppear:animated];
+    centerPoint = self.vContent.center;
+    
+    
+    AppDelegate *app = (AppDelegate *)[[UIApplication sharedApplication]delegate];
+    if (app.hasAlerted) {
+        [self textFieldClicked:nil];
+    }
+    if ([app.addressList count] != 0 && !app.hasAlerted ) {
+        NSString *comments = app.comments;
+        UIAlertView * alertView = [[UIAlertView alloc] initWithTitle:@"提示" message:comments delegate:self cancelButtonTitle:@"确定" otherButtonTitles:nil];
+        [alertView show];
+        app.hasAlerted = YES;
+    }
+    
+   
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
+    [self textFieldClicked:nil];
+
+}
+
+-(void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear: animated];
+    _locService.delegate = nil;
+    self.search.delegate = nil;
+    [_HUD hide:YES];
+}
+
+
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark SearchBar Delegate Methods
+- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
+    currentSearchBar = searchBar;
+    // 教室搜索
+	if ([searchText length] != 0) {
+        if (searchBar == _searchBar) {
+            AppDelegate *app = (AppDelegate *)[[UIApplication sharedApplication]delegate];
+            if ([app.addressList count] != 0) {
+                
+                NSMutableArray * addressList = [NSMutableArray arrayWithCapacity:0];
+                
+                for(NSDictionary * dict in app.addressList){
+                    NSString * college = [dict objectForKey:@"college"];
+                    NSLog(@"%@",college);
+                    if ([college isEqual:_collegeSearchBar.text]) {
+                        NSString * address = [dict objectForKey:@"address"];
+                        NSLog(@"%@", address);
+                        if ([address rangeOfString:searchBar.text].length > 0 ) {
+                            [addressList addObject:address];
+                        }
+                    }
+                }
+                if (addressList.count > 0) {
+                    
+                    [_ddList updateData:addressList];
+                    [self setDDListHidden:NO];
+                } else {
+                    [self setDDListHidden:YES];
+
+                }
+            }
+        } else if (searchBar == _collegeSearchBar){ // 大学搜索
+            NSPredicate *sPredicate = [NSPredicate predicateWithFormat:@"SELF.collegeName contains[c] %@", searchBar.text];
+            NSArray * arr = [self.collegeArrays filteredArrayUsingPredicate:sPredicate];
+            NSLog(@"%@", arr);
+            if (arr.count > 0) {
+                [_ddList updateData: arr];
+                [self setCollegeDDListHidden:NO];
+            } else {
+                [self setCollegeDDListHidden:YES];
+
+            }
+        }
+    }
+    else {
+        if (currentSearchBar == _searchBar) {
+            [self setDDListHidden:YES];
+        } else if (currentSearchBar == _collegeSearchBar){
+            [self setCollegeDDListHidden:YES];
+        }
+        
+    }
+}
+
+//- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar {
+//	searchBar.showsCancelButton = YES;
+//	for(id cc in [searchBar subviews])
+//    {
+//        if([cc isKindOfClass:[UIButton class]])
+//        {
+//            UIButton *btn = (UIButton *)cc;
+//            [btn setTitle:@"取消"  forState:UIControlStateNormal];
+//        }
+//    }
+//	return YES;
+//}
+
+- (void)searchBarTextDidBeginEditing:(UISearchBar *)searchBar {
+	//searchBar.text = @"";
+    if (_searchBar == searchBar) {
+        self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 110);
+    } else if (_collegeSearchBar == searchBar){
+        self.vContent.center = centerPoint;
+    }
+}
+
+- (void)searchBarTextDidEndEditing:(UISearchBar *)searchBar {
+	searchBar.showsCancelButton = NO;
+	//searchBar.text = @"";
+    self.vContent.center = centerPoint;
+
+}
+
+- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
+	[self setDDListHidden:YES];
+	[searchBar resignFirstResponder];
+}
+
+- (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
+	//[self setDDListHidden:YES];
+	//[searchBar resignFirstResponder];
+}
+
+#pragma mark PassValue protocol
+- (void)passValue:(NSString *)value{
+    if (value) {
+        if (currentSearchBar == _searchBar) {
+            
+            _searchBar.text = value;
+            [self searchBarSearchButtonClicked:_searchBar];
+        }
+    }
+    else {
+        
+    }
+}
+
+- (void)passSelectIndex:(int)index{
+    if (currentSearchBar == _collegeSearchBar){
+        CollegeInfo * college = [_ddList._searchText objectAtIndex:index];
+        _collegeSearchBar.text = college.collegeName;
+        _txCity.text = college.cityOfCollege;
+        [self searchBarSearchButtonClicked:_collegeSearchBar];
+        
+    }
+}
+
+
+#pragma mark - Tools
+
+- (void)setDDListHidden:(BOOL)hidden {
+	NSInteger height = hidden ? 0 : 120;
+	[UIView beginAnimations:nil context:nil];
+	[UIView setAnimationDuration:.2];
+	[_ddList.view setFrame:CGRectMake(_txAddress.frame.origin.x - 38  , _txAddress.frame.origin.y + 35, _txAddress.frame.size.width + 74, height)];
+	[UIView commitAnimations];
+}
+
+- (void)setCollegeDDListHidden:(BOOL)hidden {
+	NSInteger height = hidden ? 0 : 120;
+	[UIView beginAnimations:nil context:nil];
+	[UIView setAnimationDuration:.2];
+	[_ddList.view setFrame:CGRectMake(_txCollege.frame.origin.x - 38  , _txCollege.frame.origin.y + 35, _txCollege.frame.size.width + 74, height)];
+	[UIView commitAnimations];
+}
+
+- (UIImage *)createImageWithColor: (UIColor *) color
+{
+    CGRect rect=CGRectMake(0.0f, 0.0f, 1.0f, 1.0f);
+    UIGraphicsBeginImageContext(rect.size);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGContextSetFillColorWithColor(context, [color CGColor]);
+    CGContextFillRect(context, rect);
+    
+    UIImage *theImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return theImage;
+}
+
+
+#pragma mark - UIPickerViewHiddenDelegate
+
+- (void)showSchoolInfoPickerView{
+    PickerView * datePicker = [PickerView sharedPickerView];
+    datePicker.delegate = self;
+    datePicker.tableNameList = self.tableNameList;
+    [datePicker showPickerView:enum_listType];
+}
+
+- (void)pickerViewDidHidden{
+    //self.navigationItem.rightBarButtonItem.enabled = YES;
+}
+
+- (void)getSelectDate:(NSDate*)selectDate{
+    NSLog(@"%@",selectDate);
+    
+}
+
+- (void)getSelectTable:(NSInteger)index{
+
+    self.txCollege.text = [self.tableNameList objectAtIndex:index];
+    self.txCity.text = ((BMKPoiInfo *)[self.schoolInfoArray objectAtIndex:index]).city;
+    
+}
+
+#pragma mark implement BMKSearchDelegate
+- (void)onGetPoiResult:(BMKPoiSearch *)searcher result:(BMKPoiResult*)result errorCode:(BMKSearchErrorCode)error
+{
+    
+    if (error == BMK_SEARCH_NO_ERROR) {
+        self.schoolInfoArray = [NSMutableArray arrayWithCapacity:0];
+		self.tableNameList = [NSMutableArray arrayWithCapacity:0];
+        for (int i = 0; i < result.poiInfoList.count; i++) {
+            BMKPoiInfo* poi = [result.poiInfoList objectAtIndex:i];
+            NSLog(@"scool name :%@, city: %@;", poi.name, poi.city);
+            [self.tableNameList addObject:poi.name];
+            [self.schoolInfoArray addObject:poi];
+		}
+        if (self.tableNameList.count > 0) {
+            NSString * firstCollege = [self.tableNameList objectAtIndex:0];
+            NSString * cityName = ((BMKPoiInfo *)[self.schoolInfoArray objectAtIndex:0]).city;
+            self.txCity.text = [cityName stringByReplacingOccurrencesOfString:@"市" withString:@""];
+            _collegeSearchBar.text = firstCollege;
+        }
+       
+	} else if (error == BMK_SEARCH_AMBIGUOUS_ROURE_ADDR){
+        NSLog(@"起始点有歧义");
+    } else {
+        // 各种情况的判断。。。
+    }
+    
+    
+    [_HUD hide:YES afterDelay:1];
+    
+   // [self showSchoolInfoPickerView];
+
+//    if (self.tableNameList.count > 1) {
+//        [self getSelectTable:0];
+//    }
+}
+
+/**
+ *用户位置更新后，会调用此函数
+ *@param userLocation 新的用户位置
+ */
+- (void)didUpdateUserLocation:(BMKUserLocation *)userLocation{
+    
+    NSLog(@"didUpdateUserLocation lat %f,long %f",userLocation.location.coordinate.latitude,userLocation.location.coordinate.longitude);
+    [_locService stopUserLocationService];
+    
+    
+    
+    self.search =[[BMKPoiSearch alloc]init];
+    self.search.delegate = self;
+    //发起检索
+    BMKNearbySearchOption *option = [[BMKNearbySearchOption alloc]init];
+    option.pageIndex = 0;
+    option.pageCapacity = 10;
+   // option.radius = 3000;
+    option.location = CLLocationCoordinate2D{userLocation.location.coordinate.latitude,userLocation.location.coordinate.longitude}; //CLLocationCoordinate2D{39.915, 116.404};
+    option.keyword = @"大学";
+    BOOL flag = [self.search poiSearchNearBy:option];
+    if(flag)
+    {
+        NSLog(@"周边检索发送成功");
+    }
+    else
+    {
+        NSLog(@"周边检索发送失败");
+        [_HUD hide:YES afterDelay:1];
+
+    }
+    
+
+}
+
+-(IBAction)backgroundTap:(id)sender
+{
+    [_collegeSearchBar resignFirstResponder];
+    [_txCity resignFirstResponder];
+    //[_txAddress resignFirstResponder];
+    [_searchBar resignFirstResponder];
+    [_txSeatNumber resignFirstResponder];
+    [self searchBarSearchButtonClicked:_searchBar];
+
+}
+
+- (void)textFieldClicked:(UIButton *)btn{
+//    PickerView * datePicker = [PickerView sharedPickerView];
+//    datePicker.delegate = self;
+//    
+//    datePicker.tableNameList = self.tableNameList;
+//    [datePicker showPickerView:enum_listType];
+    
+    [self backgroundTap:nil];
+    
+    if (self.tableNameList.count <= 0 || !btn ) {
+        [_locService startUserLocationService];
+        _HUD = [[MBProgressHUD alloc] initWithView:self.view];
+        [self.view addSubview:_HUD];
+        [_HUD setLabelText:@"周边学校信息查询中..."];
+    
+        [_HUD show:YES];
+    } else {
+        [self showSchoolInfoPickerView];
+    }
+}
+- (IBAction)callTelphone:(id)sender {
+    [((AppDelegate *)[UIApplication sharedApplication].delegate) callTelphone];
+}
+
+-(IBAction)next:(id)sender
+{
+    [self backgroundTap:nil];
+    
+    if (//[_txCity.text length] == 0 ||
+        [_collegeSearchBar.text length] == 0 ||
+        [_searchBar.text length] == 0 ||
+        [_txSeatNumber.text length] == 0  ) {
+        
+        NSString * str = @"";
+        if ([_collegeSearchBar.text length] == 0) {
+            str = @"大学输入框内容不能为空";
+        } else if ([_searchBar.text length] == 0) {
+            str = @"教室输入框内容不能为空";
+        } else if ([_txSeatNumber.text length] == 0) {
+            str = @"座位号输入框内容不能为空";
+        }
+        
+        UIAlertView* alert = [[UIAlertView alloc]initWithTitle:@"提示" message:str delegate:nil cancelButtonTitle:@"确定" otherButtonTitles: nil];
+        [alert show];
+        return ;
+    }
+    _HUD = [[MBProgressHUD alloc] initWithView:self.view];
+    [self.view addSubview:_HUD];
+    NSURL *url = [NSURL URLWithString:@"http://www.101test.com/sets/speedtest/saveAddress"];
+    
+    AppDelegate *app = [[UIApplication sharedApplication]delegate];
+    NSMutableString * info = nil;
+    info = [NSMutableString stringWithFormat:@"{\
+            \"signalTester\": %li,\
+            \"city\": \"%@\",\
+            \"college\": \"%@\",\
+            \"address\":\"%@\",\
+            \"seatNumber\": %@\
+            }",
+            app.signalTester,
+            _txCity.text,
+            _collegeSearchBar.text,
+            _searchBar.text,
+            _txSeatNumber.text
+            ];
+    
+    app.seatNumber = [_txSeatNumber.text intValue];
+    app.address = _searchBar.text;
+    app.college = _collegeSearchBar.text;
+    NSDictionary * infoDict = [info JSONValue];
+    NSMutableData *tempJsonData = nil;
+    if ([NSJSONSerialization isValidJSONObject:infoDict])
+    {
+        NSError *error;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:infoDict options:NSJSONWritingPrettyPrinted error: &error];
+        tempJsonData = [NSMutableData dataWithData:jsonData];
+        
+        NSLog(@"%@",[[NSString alloc]initWithData:tempJsonData encoding:NSUTF8StringEncoding]);
+    }
+
+    
+    self.request = [ASIHTTPRequest requestWithURL:url];
+    [self.request setDelegate:self];
+    [self.request addRequestHeader:@"Content-Type" value:@"application/json; encoding=utf-8"];
+    [self.request addRequestHeader:@"Accept" value:@"application/json"];
+    [self.request setRequestMethod:@"POST"];
+    [self.request setPostBody:tempJsonData];
+    [self.request startAsynchronous];
+    _HUD.labelText = @"信息提交中，请稍后";
+    [_HUD show:YES];
+    return;
+
+}
+
+
+
+- (void)requestStarted:(ASIHTTPRequest *)request{
+    NSLog(@"%@",@"requestStarted");
+    
+}
+
+- (void)requestFailed:(ASIHTTPRequest *)request{
+    NSLog(@"%@",request.error);
+    [_HUD setLabelText:@"请求失败"];
+    [_HUD hide:YES afterDelay:1];
+}
+
+- (void)requestFinished:(ASIHTTPRequest *)request{
+    //    NSLog(@"%@",request.responseString);
+    
+    if (request.responseStatusCode == 404) {
+        NSLog(@"%@",@"404");
+        [_HUD setLabelText:@"404你懂得"];
+    } else {
+        NSString * respStr = request.responseString;
+        NSDictionary * dict = [respStr JSONValue];
+        NSLog(@"RET:\n%@",dict);
+        NSNumber * code = [dict objectForKey:@"code"];
+        if ([code intValue] == 0) {   // login success
+            NSDictionary* data = [dict objectForKey:@"data"];
+            NSNumber * errorcode = [data objectForKey:@"errorCode"];
+            if ([errorcode intValue] == 0) {  // success
+                [_HUD setLabelText:@"信息提交成功"];
+                AppDelegate *app = [[UIApplication sharedApplication]delegate];
+                app.addressId = [[data objectForKey:@"addressId"]intValue];
+                [self performSegueWithIdentifier:@"pushTest" sender:self.btnNext];
+            }else{
+                [_HUD setLabelText:[NSString stringWithFormat:@"信息提交失败，code = %d",[errorcode intValue]]];
+            }
+        }else{
+            [_HUD setLabelText:@"信息提交失败"];
+        }
+        [_HUD hide:YES afterDelay:1];
+    }
+}
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+#pragma mark - UITextfield Delegate
+
+- (void)textFieldDidBeginEditing:(UITextField *)textField{
+    NSLog(@"textFieldDidBeginEditing");
+    if (textField == self.txSeatNumber) {
+            self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 110);
+    } else {
+            self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 40);
+    }
+
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField{
+    NSLog(@"textFieldDidEndEditing");
+    self.vContent.center = centerPoint;
+    
+}
+
+
+
+@end
