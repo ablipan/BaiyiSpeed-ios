@@ -11,12 +11,14 @@
 		3BE1C9371A1D7FAC000C5470 /* bg@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3BE1C9361A1D7FAC000C5470 /* bg@2x.png */; };
 		3BE1C9391A1D96D9000C5470 /* back@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3BE1C9381A1D96D9000C5470 /* back@2x.png */; };
 		3BE62ADD1A1B327C008E3378 /* btnBg@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3BE62ADC1A1B327C008E3378 /* btnBg@2x.png */; };
+		3BE68F711A24415D0070B5C0 /* StringB.m in Sources */ = {isa = PBXBuildFile; fileRef = 3BE68F701A24415D0070B5C0 /* StringB.m */; };
+		3BE68F721A2461DF0070B5C0 /* init.db in Resources */ = {isa = PBXBuildFile; fileRef = 3BE68F6E1A2437C30070B5C0 /* init.db */; };
+		3BF242D31A22ED290080A587 /* NSCodingSearchBar.m in Sources */ = {isa = PBXBuildFile; fileRef = 3BF242D21A22ED290080A587 /* NSCodingSearchBar.m */; };
 		9336FF8F19C9691C005E915A /* FMDatabase.m in Sources */ = {isa = PBXBuildFile; fileRef = 9336FF8619C9691C005E915A /* FMDatabase.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		9336FF9019C9691C005E915A /* FMDatabaseAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 9336FF8819C9691C005E915A /* FMDatabaseAdditions.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		9336FF9119C9691C005E915A /* FMDatabasePool.m in Sources */ = {isa = PBXBuildFile; fileRef = 9336FF8A19C9691C005E915A /* FMDatabasePool.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		9336FF9219C9691C005E915A /* FMDatabaseQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 9336FF8C19C9691C005E915A /* FMDatabaseQueue.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		9336FF9319C9691C005E915A /* FMResultSet.m in Sources */ = {isa = PBXBuildFile; fileRef = 9336FF8E19C9691C005E915A /* FMResultSet.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		9336FF9619C96A45005E915A /* college.db in Resources */ = {isa = PBXBuildFile; fileRef = 9336FF9519C96A45005E915A /* college.db */; };
 		9336FF9819C96E07005E915A /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9336FF9719C96E07005E915A /* libsqlite3.dylib */; };
 		9348200F19B08AFB0050C4F5 /* ASIAuthenticationDialog.m in Sources */ = {isa = PBXBuildFile; fileRef = 93481FE719B08AFB0050C4F5 /* ASIAuthenticationDialog.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		9348201019B08AFB0050C4F5 /* ASIDataCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 93481FEA19B08AFB0050C4F5 /* ASIDataCompressor.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
@@ -131,6 +133,11 @@
 		3BE1C9361A1D7FAC000C5470 /* bg@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bg@2x.png"; sourceTree = "<group>"; };
 		3BE1C9381A1D96D9000C5470 /* back@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "back@2x.png"; sourceTree = "<group>"; };
 		3BE62ADC1A1B327C008E3378 /* btnBg@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "btnBg@2x.png"; sourceTree = "<group>"; };
+		3BE68F6E1A2437C30070B5C0 /* init.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = init.db; sourceTree = "<group>"; };
+		3BE68F6F1A24415D0070B5C0 /* StringB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StringB.h; sourceTree = "<group>"; };
+		3BE68F701A24415D0070B5C0 /* StringB.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StringB.m; sourceTree = "<group>"; };
+		3BF242D11A22ED290080A587 /* NSCodingSearchBar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSCodingSearchBar.h; sourceTree = "<group>"; };
+		3BF242D21A22ED290080A587 /* NSCodingSearchBar.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSCodingSearchBar.m; sourceTree = "<group>"; };
 		9336FF8519C9691C005E915A /* FMDatabase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FMDatabase.h; sourceTree = "<group>"; };
 		9336FF8619C9691C005E915A /* FMDatabase.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FMDatabase.m; sourceTree = "<group>"; };
 		9336FF8719C9691C005E915A /* FMDatabaseAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FMDatabaseAdditions.h; sourceTree = "<group>"; };
@@ -142,7 +149,6 @@
 		9336FF8D19C9691C005E915A /* FMResultSet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FMResultSet.h; sourceTree = "<group>"; };
 		9336FF8E19C9691C005E915A /* FMResultSet.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FMResultSet.m; sourceTree = "<group>"; };
 		9336FF9419C969D4005E915A /* MacroUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacroUtils.h; sourceTree = "<group>"; };
-		9336FF9519C96A45005E915A /* college.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = college.db; sourceTree = "<group>"; };
 		9336FF9719C96E07005E915A /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
 		93481FE619B08AFB0050C4F5 /* ASIAuthenticationDialog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASIAuthenticationDialog.h; sourceTree = "<group>"; };
 		93481FE719B08AFB0050C4F5 /* ASIAuthenticationDialog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ASIAuthenticationDialog.m; sourceTree = "<group>"; };
@@ -381,6 +387,8 @@
 				93481FFA19B08AFB0050C4F5 /* GTMBase64 */,
 				93481FFE19B08AFB0050C4F5 /* JSON */,
 				9348200C19B08AFB0050C4F5 /* Reachability */,
+				3BE68F6F1A24415D0070B5C0 /* StringB.h */,
+				3BE68F701A24415D0070B5C0 /* StringB.m */,
 			);
 			path = Tools;
 			sourceTree = "<group>";
@@ -550,6 +558,8 @@
 				E05218FF19AC931500B13164 /* ViewController.m */,
 				E0034E4A19AF7CA8000DAD4A /* InputViewController.h */,
 				E0034E4B19AF7CA8000DAD4A /* InputViewController.mm */,
+				3BF242D11A22ED290080A587 /* NSCodingSearchBar.h */,
+				3BF242D21A22ED290080A587 /* NSCodingSearchBar.m */,
 				E058CF9B19B07F7200F7081D /* TestViewController.h */,
 				E058CF9C19B07F7200F7081D /* TestViewController.m */,
 				E0FC6E3619B356B500C3DC2F /* ResultViewController.h */,
@@ -563,7 +573,7 @@
 		E05218F019AC931500B13164 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				9336FF9519C96A45005E915A /* college.db */,
+				3BE68F6E1A2437C30070B5C0 /* init.db */,
 				E05218F119AC931500B13164 /* BaiyiSpeed-Info.plist */,
 				E05218F219AC931500B13164 /* InfoPlist.strings */,
 				E05218F519AC931500B13164 /* main.m */,
@@ -710,6 +720,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3BE68F721A2461DF0070B5C0 /* init.db in Resources */,
 				E089B86419B0A728000A95B7 /* C@2x.png in Resources */,
 				93731F5019C6EDB900703F49 /* nav_backbar@2x.png in Resources */,
 				E0034E4119AF3AF3000DAD4A /* logbtn@2x.png in Resources */,
@@ -733,7 +744,6 @@
 				937E9E1719C2DF45005A874C /* icon@2x.png in Resources */,
 				E0FC6E3319B2CA5F00C3DC2F /* btnNextTest@2x.png in Resources */,
 				E0034E4919AF77D1000DAD4A /* nextbtn@2x.png in Resources */,
-				9336FF9619C96A45005E915A /* college.db in Resources */,
 				E089B86319B0A728000A95B7 /* D@2x.png in Resources */,
 				E089B86619B0A728000A95B7 /* AS@2x.png in Resources */,
 				E0FC6E3519B2CA5F00C3DC2F /* btnBeginTest@2x.png in Resources */,
@@ -769,6 +779,7 @@
 				9348204A19B08C310050C4F5 /* AFSecurityPolicy.m in Sources */,
 				E052190019AC931500B13164 /* ViewController.m in Sources */,
 				9348201D19B08AFB0050C4F5 /* SBJsonWriter.m in Sources */,
+				3BE68F711A24415D0070B5C0 /* StringB.m in Sources */,
 				9348200F19B08AFB0050C4F5 /* ASIAuthenticationDialog.m in Sources */,
 				E0FC6E2F19B209E700C3DC2F /* MBProgressHUD.m in Sources */,
 				9348201019B08AFB0050C4F5 /* ASIDataCompressor.m in Sources */,
@@ -786,6 +797,7 @@
 				9348201B19B08AFB0050C4F5 /* SBJsonBase.m in Sources */,
 				9348201E19B08AFB0050C4F5 /* Reachability.m in Sources */,
 				9348204D19B08C310050C4F5 /* AFURLResponseSerialization.m in Sources */,
+				3BF242D31A22ED290080A587 /* NSCodingSearchBar.m in Sources */,
 				9348204719B08C310050C4F5 /* AFHTTPRequestOperationManager.m in Sources */,
 				9348204619B08C310050C4F5 /* AFHTTPRequestOperation.m in Sources */,
 				9348201219B08AFB0050C4F5 /* ASIDownloadCache.m in Sources */,
@@ -889,7 +901,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 			};
@@ -922,7 +934,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -933,8 +945,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
-				CODE_SIGN_IDENTITY = "iPhone Distribution: Asiainfo-Linkage Technologies (China) Inc.";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution: Asiainfo-Linkage Technologies (China) Inc.";
+				CODE_SIGN_IDENTITY = "iPhone Developer: Zhipeng Zhang (499G23UU58)";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer: Zhipeng Zhang (499G23UU58)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "BaiyiSpeed/BaiyiSpeed-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
@@ -943,7 +955,7 @@
 					"\"$(SRCROOT)/inc",
 				);
 				INFOPLIST_FILE = "BaiyiSpeed/BaiyiSpeed-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/BaiyiSpeed/Tools/BaiduMapAPI/Release-iphoneos",
@@ -955,7 +967,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "cf9406fb-e970-4b8d-8c8e-cae330f9147b";
+				PROVISIONING_PROFILE = "";
 				VALID_ARCHS = "armv7 armv7s";
 				WRAPPER_EXTENSION = app;
 			};
@@ -966,8 +978,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
-				CODE_SIGN_IDENTITY = "iPhone Distribution: Asiainfo-Linkage Technologies (China) Inc.";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution: Asiainfo-Linkage Technologies (China) Inc.";
+				CODE_SIGN_IDENTITY = "iPhone Developer: Zhipeng Zhang (499G23UU58)";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer: Zhipeng Zhang (499G23UU58)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "BaiyiSpeed/BaiyiSpeed-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
@@ -976,7 +988,7 @@
 					"\"$(SRCROOT)/inc",
 				);
 				INFOPLIST_FILE = "BaiyiSpeed/BaiyiSpeed-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/BaiyiSpeed/Tools/BaiduMapAPI/Release-iphoneos",
@@ -988,7 +1000,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "cf9406fb-e970-4b8d-8c8e-cae330f9147b";
+				PROVISIONING_PROFILE = "";
 				VALID_ARCHS = "armv7 armv7s";
 				WRAPPER_EXTENSION = app;
 			};

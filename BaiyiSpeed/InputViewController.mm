@@ -17,6 +17,11 @@
 #import "FMDatabase.h"
 #import <CoreLocation/CoreLocation.h>
 #import <CoreLocation/CLLocationManagerDelegate.h>
+#import "NSCodingSearchBar.h"
+#import "StringB.h"
+#import <arpa/inet.h>
+#import <netdb.h>
+
 @implementation CollegeInfo
 
 - (NSString*)description{
@@ -30,9 +35,9 @@
     CGPoint  centerPoint;
     UISearchBar * currentSearchBar;
     DDList				 *_ddList;
-    UISearchBar * _citySearchBar; //城市搜索框
-    UISearchBar * _collegeSearchBar; // 大学搜索框
-    UISearchBar * _classroomSearchBar; //详细地址搜索框...
+    NSCodingSearchBar * _citySearchBar; //城市搜索框
+    NSCodingSearchBar * _collegeSearchBar; // 大学搜索框
+    NSCodingSearchBar * _classroomSearchBar; //详细地址搜索框...
 }
 @property(nonatomic ,strong) NSMutableArray * cityArrays;
 @property(nonatomic ,strong) NSMutableArray * collegeArrays;
@@ -92,13 +97,16 @@
 }
 
 // 从db中查询所有大学
-- (void)queryCampusData {
+- (void)queryCampusData{
     debugMethod();
-    NSString *dbPath = [[NSBundle mainBundle] pathForResource:@"college" ofType:@"db"];
+    NSString *dbPath = [[NSBundle mainBundle] pathForResource:@"init" ofType:@"db"];
     self.collegeArrays = [NSMutableArray arrayWithCapacity:1000];
     FMDatabase * db = [FMDatabase databaseWithPath:dbPath];
     if ([db open]) {
         NSString * sql = @"select * from campus";
+        if ([StringB trim:_citySearchBar.text].length != 0) {
+            sql = [sql stringByAppendingString:[NSString stringWithFormat:@" where city ='%@'",[StringB trim:_citySearchBar.text]]];
+        }
         FMResultSet * rs = [db executeQuery:sql];
         while ([rs next]) {
 //            int userId = [rs intForColumn:@"id"];
@@ -137,44 +145,47 @@
     _isInit = NO;
     [self doInit]; //获得初始化数据...
     [self queryCityData]; // 查询城市信息
-    [self queryCampusData]; // 查询大学信息
+    
+    NSLog(@"_txCity:%f,_txCollege:%f,_txAddress:%f",_txCity.frame.origin.x,_txCollege.frame.origin.x,_txAddress.frame.origin.x);
     
     _txCity.hidden = YES;
-    _citySearchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(_txCity.frame.origin.x - 10 , _txCity.frame.origin.y, 200, _txCity.frame.size.height)];// 初始化，不解释
+    _citySearchBar = [[NSCodingSearchBar alloc] initWithFrame: CGRectMake(50 , _txCity.frame.origin.y, _txCity.frame.size.width+25, _txCity.frame.size.height)];// 初始化，不解释
     [_vContent addSubview:_citySearchBar];
     _citySearchBar.backgroundImage = [self createImageWithColor:[UIColor clearColor]];
     _citySearchBar.delegate = self;
     [_citySearchBar setImage:_citySearchBar.backgroundImage forSearchBarIcon:UISearchBarIconSearch state:UIControlStateNormal];
-    [_citySearchBar setImage:_citySearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
+    //[_citySearchBar setImage:_citySearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
     [_citySearchBar setImage:_citySearchBar.backgroundImage forSearchBarIcon:UISearchBarIconResultsList state:UIControlStateNormal];
-    [_citySearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
-    _citySearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
+//    [_citySearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
+//    _citySearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
     _citySearchBar.placeholder = @"城市";
+    [_citySearchBar setHasCentredPlaceholder:NO]; // placehoder不居中
     
     _txCollege.hidden = YES;
-    _collegeSearchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(_txCollege.frame.origin.x - 10 , _txCollege.frame.origin.y, 200, _txCollege.frame.size.height)];// 初始化，不解释
+    _collegeSearchBar = [[NSCodingSearchBar alloc] initWithFrame: CGRectMake(50, _txCollege.frame.origin.y,  _txCollege.frame.size.width+25, _txCollege.frame.size.height)];// 初始化，不解释
     [_vContent addSubview:_collegeSearchBar];
     _collegeSearchBar.backgroundImage = [self createImageWithColor:[UIColor clearColor]];
     _collegeSearchBar.delegate = self;
     [_collegeSearchBar setImage:_collegeSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconSearch state:UIControlStateNormal];
-    [_collegeSearchBar setImage:_collegeSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
+//    [_collegeSearchBar setImage:_collegeSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
     [_collegeSearchBar setImage:_collegeSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconResultsList state:UIControlStateNormal];
-    [_collegeSearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
-    _collegeSearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
+//    [_collegeSearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
+//    _collegeSearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
     _collegeSearchBar.placeholder = @"学校或其他机构";
+    [_collegeSearchBar setHasCentredPlaceholder:NO]; // placehoder不居中
 
     _txAddress.hidden = YES;
-    _classroomSearchBar = [[UISearchBar alloc] initWithFrame: CGRectMake(_txAddress.frame.origin.x - 10 , _txAddress.frame.origin.y, 200, _txAddress.frame.size.height)];// 初始化，不解释
+    _classroomSearchBar = [[NSCodingSearchBar alloc] initWithFrame: CGRectMake(50 , _txAddress.frame.origin.y, _txAddress.frame.size.width+25, _txAddress.frame.size.height)];// 初始化，不解释
     [_vContent addSubview:_classroomSearchBar];
     _classroomSearchBar.backgroundImage = [self createImageWithColor:[UIColor clearColor]];
-    _classroomSearchBar.placeholder = @"";
     _classroomSearchBar.delegate = self;
     [_classroomSearchBar setImage:_classroomSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconSearch state:UIControlStateNormal];
-    [_classroomSearchBar setImage:_classroomSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
+//    [_classroomSearchBar setImage:_classroomSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
     [_classroomSearchBar setImage:_classroomSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconResultsList state:UIControlStateNormal];
-    [_classroomSearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
-    _classroomSearchBar.searchTextPositionAdjustment = UIOffsetMake(-27, 0);
+//    [_classroomSearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
+//    _classroomSearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
     _classroomSearchBar.placeholder = @"校区楼号等详细地址信息";
+    [_classroomSearchBar setHasCentredPlaceholder:NO]; // placehoder不居中
     
     //自定义返回按钮
     UIImage *backButtonImage = [[UIImage imageNamed:@"nav_backbar.png"] resizableImageWithCapInsets:UIEdgeInsetsMake(0, 15, 0, 0)];
@@ -182,13 +193,13 @@
     //将返回按钮的文字position设置不在屏幕上显示
     [[UIBarButtonItem appearance] setBackButtonTitlePositionAdjustment:UIOffsetMake(NSIntegerMin, NSIntegerMin) forBarMetrics:UIBarMetricsDefault];
     
-    UIButton * collegeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    collegeBtn.frame = CGRectMake(CGRectGetMaxX(self.txCollege.frame), self.txCollege.frame.origin.y, 50, 40);
-    [_vContent addSubview:collegeBtn];
-    [collegeBtn addTarget:self action:@selector(textFieldClicked:) forControlEvents:UIControlEventTouchUpInside];
-    self.txCollege.delegate = self;
-    self.txAddress.delegate = self;
-    self.txCity.delegate = self;
+//    UIButton * collegeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+//    collegeBtn.frame = CGRectMake(CGRectGetMaxX(self.txCollege.frame), self.txCollege.frame.origin.y, 50, 40);
+//    [_vContent addSubview:collegeBtn];
+//    [collegeBtn addTarget:self action:@selector(textFieldClicked:) forControlEvents:UIControlEventTouchUpInside];
+//    self.txCollege.delegate = self;
+//    self.txAddress.delegate = self;
+//    self.txCity.delegate = self;
     
     _ddList = [[DDList alloc] initWithStyle:UITableViewStylePlain];
 	_ddList._delegate = self;
@@ -216,36 +227,24 @@
 // 查询基本信息
 -(void)doInit
 {
-//    _HUD = [[MBProgressHUD alloc] initWithView:self.view];
-//    [self.view addSubview:_HUD];
-    NSURL *url = [NSURL URLWithString:@"http://www.101test.com/sets/speedtest/getBasicInfo"];
+    NSURL *url = [NSURL URLWithString:[[AppDelegate getBaseUrl] stringByAppendingString:@"getBasicInfo"]];
     self.request = [ASIHTTPRequest requestWithURL:url];
     [self.request setDelegate:self];
     [self.request setTag:INIT];
     [self.request startAsynchronous];
-//    _HUD.labelText = @"初始化中，请稍后";
-//    [_HUD show:YES];
     return;
 }
-
 
 - (void)backButtonClicked:(id)sender{
     [self.navigationController popViewControllerAnimated:YES];
 }
 
-
 // 视图即将显式
 -(void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear: animated];
-    
-    
     if ([CLLocationManager locationServicesEnabled]) {
-        
     #if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_7_1
-        // As of iOS 8, apps must explicitly request location services permissions. INTULocationManager supports both levels, "Always" and "When In Use".
-        // INTULocationManager determines which level of permissions to request based on which description key is present in your app's Info.plist
-        // If you provide values for both description keys, the more permissive "Always" level is requested.
-        if (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_7_1 && [CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
+         if (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_7_1 && [CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
             BOOL hasAlwaysKey = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSLocationAlwaysUsageDescription"] != nil;
             BOOL hasWhenInUseKey = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"] != nil;
             if (hasAlwaysKey) {
@@ -253,7 +252,6 @@
             } else if (hasWhenInUseKey) {
                 [_locationManager requestWhenInUseAuthorization];
             } else {
-                // At least one of the keys NSLocationAlwaysUsageDescription or NSLocationWhenInUseUsageDescription MUST be present in the Info.plist file to use location services on iOS 8+.
                 NSAssert(hasAlwaysKey || hasWhenInUseKey, @"To use location services in iOS 8+, your Info.plist must provide a value for either NSLocationWhenInUseUsageDescription or NSLocationAlwaysUsageDescription.");
             }
         }
@@ -261,7 +259,6 @@
         
         [_locationManager startUpdatingLocation];
     }
-//    [_locationManager startUpdatingLocation];
 }
 
 // 视图已显式时
@@ -270,8 +267,8 @@
     centerPoint = self.vContent.center;
     AppDelegate *app = (AppDelegate *)[[UIApplication sharedApplication]delegate];
     if ([app.addressList count] != 0 && !app.hasAlerted ) {
-        NSString *comments = app.comments;
-        UIAlertView * alertView = [[UIAlertView alloc] initWithTitle:@"提示" message:comments delegate:self cancelButtonTitle:@"确定" otherButtonTitles:nil];
+//        NSString *comments = app.comments;
+        UIAlertView * alertView = [[UIAlertView alloc] initWithTitle:@"提示" message:@"测速预计花费时间3分钟，花费流量20兆，建议购买流量包。" delegate:self cancelButtonTitle:@"确定" otherButtonTitles:nil];
         [alertView show];
         app.hasAlerted = YES;
     }
@@ -336,7 +333,7 @@
     }
 }
 
-
+#pragma mark UISearchBar事件
 // 搜索框开始输入...
 - (void)searchBarTextDidBeginEditing:(UISearchBar *)searchBar {
     if (_classroomSearchBar == searchBar) { //详细地址点击时获取详细信息列表
@@ -345,9 +342,25 @@
             [self getDetailAddList];
         }
         self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 110);
-    } else if (_collegeSearchBar == searchBar){
-        self.vContent.center = centerPoint;
+    } else if (_collegeSearchBar == searchBar){ // 大学输入框点击
+        [self queryCampusData]; // 查询大学信息
+        self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 55);
     }
+}
+// 搜索框输入完成
+- (void)searchBarTextDidEndEditing:(UISearchBar *)searchBar {
+    searchBar.showsCancelButton = NO;
+    //searchBar.text = @"";
+    self.vContent.center = centerPoint;
+    
+}
+// 搜索框搜索按钮点击事件
+- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
+    [self setDDListHidden:YES];
+    [searchBar resignFirstResponder];
+}
+// 搜索框取消按钮点击事件
+- (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
 }
 
 // 使用大学、城市查询详细地址信息
@@ -386,21 +399,6 @@
     return;
 }
 
-- (void)searchBarTextDidEndEditing:(UISearchBar *)searchBar {
-	searchBar.showsCancelButton = NO;
-	//searchBar.text = @"";
-    self.vContent.center = centerPoint;
-
-}
-
-- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
-	[self setDDListHidden:YES];
-	[searchBar resignFirstResponder];
-}
-
-- (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
-}
-
 #pragma mark PassValue protocol
 
 // 下拉提示框传值
@@ -423,8 +421,6 @@
         [self searchBarSearchButtonClicked:_citySearchBar];
     }else if(currentSearchBar == _classroomSearchBar) // 详细地址...
     {
-//        [AppDelegate debugWithDialog:_ddList._selectedText];
-//        NSString *classroom = [_ddList._searchText objectAtIndex:index];
         _classroomSearchBar.text = _ddList._selectedText;
         [self searchBarSearchButtonClicked:_classroomSearchBar];
     }
@@ -434,7 +430,7 @@
 #pragma mark - Tools
 
 - (void)setDDListHidden:(BOOL)hidden {
-	NSInteger height = hidden ? 0 : 120;
+	NSInteger height = hidden ? 0 : 190;
 	[UIView beginAnimations:nil context:nil];
 	[UIView setAnimationDuration:.2];
 	[_ddList.view setFrame:CGRectMake(_txAddress.frame.origin.x  , _txAddress.frame.origin.y + 35, _txAddress.frame.size.width, height)];
@@ -442,7 +438,7 @@
 }
 
 - (void)setCollegeDDListHidden:(BOOL)hidden {
-	NSInteger height = hidden ? 0 : 120;
+	NSInteger height = hidden ? 0 : 140;
 	[UIView beginAnimations:nil context:nil];
 	[UIView setAnimationDuration:.2];
 	[_ddList.view setFrame:CGRectMake(_txCollege.frame.origin.x  , _txCollege.frame.origin.y + 35, _txCollege.frame.size.width, height)];
@@ -473,26 +469,6 @@
 
 #pragma mark - UIPickerViewHiddenDelegate
 
-- (void)showSchoolInfoPickerView{
-    PickerView * datePicker = [PickerView sharedPickerView];
-    datePicker.delegate = self;
-    datePicker.tableNameList = self.tableNameList;
-    [datePicker showPickerView:enum_listType];
-}
-
-- (void)pickerViewDidHidden{
-    //self.navigationItem.rightBarButtonItem.enabled = YES;
-}
-
-- (void)getSelectDate:(NSDate*)selectDate{
-    NSLog(@"%@",selectDate);
-    
-}
-
-- (void)getSelectTable:(NSInteger)index{
-
-    self.txCollege.text = [self.tableNameList objectAtIndex:index];
-}
 
 #pragma mark implement BMKSearchDelegate
 
@@ -599,6 +575,7 @@
 
 }
 
+#pragma mark Http请求事件
 - (void)requestStarted:(ASIHTTPRequest *)request{
     NSLog(@"%@",@"requestStarted");
     
@@ -712,6 +689,141 @@
     self.vContent.center = centerPoint;
     
 }
+
+
+
+
+
+
+#pragma mark 测试Socket下载
+-(IBAction)download:(id)sender
+{
+    NSURL * url = [NSURL URLWithString:[NSString stringWithFormat:@"%@:%@", @"http://ixisu.com", @"80"]];
+    NSThread * backgroundThread = [[NSThread alloc] initWithTarget:self
+                                                          selector:@selector(loadDataFromServerWithURL:)
+                                                            object:url];
+    [backgroundThread start];
+
+}
+
+- (void)networkFailedWithErrorMessage:(NSString *)message
+{
+    // Update UI
+    //
+    [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+        NSLog(@" >> %@", message);
+        
+//        self.receiveTextView.text = message;
+//        self.connectButton.enabled = YES;
+//        [self.networkActivityView stopAnimating];
+        [AppDelegate debugWithDialog:@"Download Error"];
+    }];
+}
+
+- (void)networkSucceedWithData:(NSData *)data
+{
+    // Update UI
+    //
+    [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+        NSString * resultsString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        NSLog(@" >> Received string: '%@'", resultsString);
+        
+//        self.receiveTextView.text = resultsString;
+//        self.connectButton.enabled = YES;
+//        [self.networkActivityView stopAnimating];
+        [AppDelegate debugWithDialog:[NSString stringWithFormat:@"Download success,data length:%d",data.length]];
+    }];
+}
+
+- (void)loadDataFromServerWithURL:(NSURL *)url
+{
+    NSString * host = [url host];
+    NSNumber * port = [url port];
+    
+    // Create socket
+    //
+    int socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    if (-1 == socketFileDescriptor) {
+        NSLog(@"Failed to create socket.");
+        return;
+    }
+    
+    // Get IP address from host
+    //
+    struct hostent * remoteHostEnt = gethostbyname([host UTF8String]);
+    if (NULL == remoteHostEnt) {
+        close(socketFileDescriptor);
+        
+        [self networkFailedWithErrorMessage:@"Unable to resolve the hostname of the warehouse server."];
+        return;
+    }
+    
+    struct in_addr * remoteInAddr = (struct in_addr *)remoteHostEnt->h_addr_list[0];
+    
+    // Set the socket parameters
+    //
+    struct sockaddr_in socketParameters;
+    socketParameters.sin_family = AF_INET;
+    socketParameters.sin_addr = *remoteInAddr;
+    socketParameters.sin_port = htons([port intValue]);
+    
+    // Connect the socket
+    //
+    int ret = connect(socketFileDescriptor, (struct sockaddr *) &socketParameters, sizeof(socketParameters));
+    if (-1 == ret) {
+        close(socketFileDescriptor);
+        
+        NSString * errorInfo = [NSString stringWithFormat:@" >> Failed to connect to %@:%@", host, port];
+        [self networkFailedWithErrorMessage:errorInfo];
+        return;
+    }
+    
+    // 发送报文
+    const char *sendData = "GET /speedtest/test.bin HTTP/1.1\r\n Host: wwww.ixisu.com:80\r\n Connection:Keep-Alive\r\n\r\n";
+    int sendResult = send(socketFileDescriptor, sendData ,strlen(sendData), 0);
+    if (-1 == sendResult) {
+        close(socketFileDescriptor);
+        NSString * errorInfo = [NSString stringWithFormat:@" >> Failed to send msg to %@:%@", host, port];
+        [self networkFailedWithErrorMessage:errorInfo];
+        return;
+    }
+    
+    NSLog(@" >> Successfully connected to %@:%@", host, port);
+    
+    NSMutableData * data = [[NSMutableData alloc] init];
+    BOOL waitingForData = YES;
+    
+    // Continually receive data until we reach the end of the data
+    //
+    int maxCount = 5;   // just for test.
+    int i = 0;
+    while (waitingForData && i < maxCount) {
+        const char * buffer[1024];
+        int length = sizeof(buffer); //对象或类型所占的内存字节数
+        
+        // Read a buffer's amount of data from the socket; the number of bytes read is returned
+        //
+        int result = recv(socketFileDescriptor, &buffer, length, 0);
+        if (result > 0) {
+            [data appendBytes:buffer length:result];
+        }
+        else {
+            // if we didn't get any data, stop the receive loop
+            //
+            waitingForData = NO;
+        }
+        
+        ++i;
+    }
+    
+    // Close the socket
+    //
+    close(socketFileDescriptor);
+    
+    [self networkSucceedWithData:data];
+}
+
+
 
 
 

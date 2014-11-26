@@ -39,9 +39,34 @@ BMKMapManager* _mapManager;
         NSMutableDictionary *dic=[[NSMutableDictionary alloc] init];
         [dic setObject:[carrier carrierName] forKey:@"Carriername"];
         [dic setObject:[carrier mobileCountryCode] forKey:@"MobileCountryCode"];
-        [dic setObject:[carrier mobileNetworkCode]forKey:@"MobileNetworkCode"];
+//        [dic setObject:[carrier mobileNetworkCode]forKey:@"MobileNetworkCode"];
         [dic setObject:[carrier isoCountryCode] forKey:@"ISOCountryCode"];
         [dic setObject:[carrier allowsVOIP]?@"YES":@"NO" forKey:@"AllowsVOIP"];
+        
+        NSString * carrierStr = @"unknow";
+        NSString * carrierParamKey = @"unknow";
+        NSString * carrierName = @"unknow";
+        if ([[carrier mobileNetworkCode] isEqualToString:@"01"] ||
+            [[carrier mobileNetworkCode] isEqualToString:@"06"]) {
+            carrierParamKey = @"cucNum";
+            carrierStr = @"CUC";
+            carrierName = @"联通";
+        } else if ([[carrier mobileNetworkCode] isEqualToString:@"00"] ||
+                   [[carrier mobileNetworkCode] isEqualToString:@"02"] ||
+                   [[carrier mobileNetworkCode] isEqualToString:@"07"]) {
+            carrierParamKey = @"cmcNum";
+            carrierStr = @"CMC";
+            carrierName = @"移动";
+        } else if ([[carrier mobileNetworkCode] isEqualToString:@"03"] ||
+                   [[carrier mobileNetworkCode] isEqualToString:@"05"] ||
+                   [[carrier mobileNetworkCode] isEqualToString:@"20"]) {
+            carrierParamKey = @"ctcNum";
+            carrierStr = @"CTC";
+            carrierName = @"电信";
+        }
+        [dic setObject:carrierStr forKey:@"carrierStr"];
+        [dic setObject:carrierName forKey:@"carrierName"];
+        [dic setObject:carrierParamKey forKey:@"carrierParamKey"];
         imsi = dic;
     }
     if(mainBundle!=nil)
@@ -166,7 +191,7 @@ BMKMapManager* _mapManager;
 }
 // 获得基本url信息
 + (NSString *) getBaseUrl{
-    return @"http://124.207.3.27/sets/speedtest/";
+    return @"http://124.207.3.10/EmplPortal/sets/speedtest/";
 //    return @"http://www.101test.com/sets/speedtest/";
 }
 // 是否wifi

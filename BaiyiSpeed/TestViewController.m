@@ -57,6 +57,7 @@
 #define SUBMIT_RESULT 100 //提交测速结果标识
 #define SUBMIT_LOG 101 //提交日志标识
 
+@property(nonatomic)NSMutableData *logData; //上传日志信息...
 
 @end
 
@@ -161,29 +162,12 @@
         app.speed = (speed_t/[_retList count]);
         
         NSDictionary * cellularInfoDict = [AppDelegate getCellularProviderName];
-        NSString * networkCode = [cellularInfoDict objectForKey:@"MobileNetworkCode"];
+//        NSString * networkCode = [cellularInfoDict objectForKey:@"MobileNetworkCode"];
         NSString * deviceName = [cellularInfoDict objectForKey:@"deviceName"];
         NSString * phoneVersion = [cellularInfoDict objectForKey:@"phoneVersion"];
         NSString * netType = [cellularInfoDict objectForKey:@"netType"];
-        NSString * networkParaStr = @"cmcNum";
-        NSString * carrierStr = @"CMC";
-        if ([networkCode isEqualToString:@"01"] ||
-            [networkCode isEqualToString:@"06"]) {
-            networkParaStr = @"cucNum";
-            carrierStr = @"CUC";
-        } else if ([networkCode isEqualToString:@"00"] ||
-                   [networkCode isEqualToString:@"02"] ||
-                   [networkCode isEqualToString:@"07"]) {
-            networkParaStr = @"cmcNum";
-            carrierStr = @"CMC";
-        } else if ([networkCode isEqualToString:@"03"] ||
-                   [networkCode isEqualToString:@"05"] ||
-                   [networkCode isEqualToString:@"20"]) {
-            networkParaStr = @"ctcNum";
-            carrierStr = @"CTC";
-        }
-        
-        
+        NSString * networkParaStr = [cellularInfoDict objectForKey:@"carrierParamKey"];
+        NSString * carrierStr = [cellularInfoDict objectForKey:@"carrierStr"];
         NSURL *url = [NSURL URLWithString:[[AppDelegate getBaseUrl]stringByAppendingString:@"uploadResult"]];
         
         // \"signalStrength\": %d\
@@ -216,7 +200,7 @@
         [self.request setTag:SUBMIT_RESULT];
         [self.request setPostBody:tempJsonData];
         [self.request startAsynchronous];
-        _HUD.labelText = @"测速结果提交中，请稍后";
+        _HUD.labelText = @"正在提交测速结果...";
         [_HUD show:YES];
         
         // 测速日志json准备...
@@ -245,19 +229,18 @@
                self.endTime
                ];
         NSDictionary * logDict = [log JSONValue];
-        NSMutableData * logJsonData = nil;
+//        NSMutableData * logJsonData = nil;
         if ([NSJSONSerialization isValidJSONObject:logDict])
         {
             NSError *error;
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:logDict options:NSJSONWritingPrettyPrinted error: &error];
-            logJsonData = [NSMutableData dataWithData:jsonData];
-            NSLog(@"%@",[[NSString alloc]initWithData:logJsonData encoding:NSUTF8StringEncoding]);
+            self.logData = [NSMutableData dataWithData:jsonData];
+            NSLog(@"%@",[[NSString alloc]initWithData:self.logData encoding:NSUTF8StringEncoding]);
         }
-        [self uploadLog:logJsonData];
     }
 }
 
--(void) uploadLog:(NSMutableData *)logJsonData
+-(void) uploadLog
 {
     NSURL *url = [NSURL URLWithString:[[AppDelegate getBaseUrl]stringByAppendingString:@"uploadLogs"]];
     self.request = [ASIHTTPRequest requestWithURL:url];
@@ -266,7 +249,7 @@
     [self.request addRequestHeader:@"Accept" value:@"application/json"];
     [self.request setRequestMethod:@"POST"];
     [self.request setTag:SUBMIT_LOG];
-    [self.request setPostBody:logJsonData];
+    [self.request setPostBody:self.logData];
     [self.request startAsynchronous];
 }
 
@@ -291,7 +274,6 @@
             //request.timeOutSeconds
         }
     }
-    
     if (request.responseStatusCode == 404) {
         NSLog(@"%@",@"404");
         [_HUD setLabelText:@"404你懂得"];
@@ -301,20 +283,35 @@
             NSDictionary * dict = [respStr JSONValue];
             NSLog(@"RET:\n%@",dict);
             NSNumber * code = [dict objectForKey:@"code"];
-            if ([code intValue] == 0) {   // login success
+            if ([code intValue] == 0) {
                 NSDictionary* data = [dict objectForKey:@"data"];
                 NSNumber * errorcode = [data objectForKey:@"errorCode"];
                 NSNumber *num = [data objectForKey:@"num"];
                 if ([errorcode intValue] == 0) {  // success
                     [_HUD setLabelText:@"测速结果提交成功"];
+                    NSString * carrierStr = [[AppDelegate getCellularProviderName] objectForKey:@"carrierStr"];
+                    NSString * carrierName = [[AppDelegate getCellularProviderName] objectForKey:@"carrierName"];
+                    AppDelegate *app = [[UIApplication sharedApplication]delegate];
                     if (num.intValue != 0) {
-                        [self.comments setText:[NSString stringWithFormat: @"测速完成! 已提交测速结果!考场预计可考试总人数为 %d 人",num.intValue]];
+                        [self.comments setText:[NSString stringWithFormat: @"测速完成! %@带宽为 %d KB/s，考场可考试人数为 %d 人",carrierName,app.speed,num.intValue]];
                     }else
                     {
-                        [self.comments setText:@"测速完成! 已提交测速结果!"];
+//                        测速完成! 移动带宽为 200 KB/s，欲知考场可考试人数，请用联通手机完成测试。
+                        if ([carrierStr isEqualToString:@"CMC"]) {
+                            [self.comments setText:[NSString stringWithFormat: @"测速完成! %@带宽为 %d KB/s，欲知考场可考试人数，请用 %@ 手机完成测试。",carrierName,app.speed,@"联通"]];
+                        }else if([carrierStr isEqualToString:@"CUC"])
+                        {
+                          [self.comments setText:[NSString stringWithFormat: @"测速完成! %@带宽为 %d KB/s，欲知考场可考试人数，请用 %@ 手机完成测试。",carrierName,app.speed,@"移动"]];
+                        }else if([carrierStr isEqualToString:@"CTC"])
+                        {
+                          [self.comments setText:[NSString stringWithFormat: @"测速完成! %@带宽为 %d KB/s，欲知考场可考试人数，请用 %@ 手机完成测试。",carrierName,app.speed,@"移动和联通"]];
+                        }else{
+                            [self.comments setText:[NSString stringWithFormat: @"测速完成! %@带宽为 %d KB/s，由于运营商类型未知，未保存测速结果！",carrierName,app.speed]];
+                        }
                     }
                     [self.endTest setHidden:NO]; // 显式关闭按钮
                     [self.btnBeginTest setHidden:YES]; // 隐藏开始测速按钮
+                    [self uploadLog];
                     //                [self performSegueWithIdentifier:@"pushResult" sender:self.btnNextTest];
                 }else{
                     [_HUD setLabelText:[NSString stringWithFormat:@"测速结果提交失败，code = %d",[errorcode intValue]]];
@@ -415,9 +412,9 @@ int getSignalStrength()
 - (double)speedGetOf:(NSMutableArray *)arr{
     double realSpeed = 0;
     
-    if (arr.count < 50) {
-        return 1;
-    }
+//    if (arr.count < 50) {
+//        return 1;
+//    }
 
     NSMutableArray *sortedArray = [NSMutableArray arrayWithArray:arr];
     
@@ -434,8 +431,8 @@ int getSignalStrength()
     
     long count = sortedArray.count;
     
-    long beginIndex = count * 0.1;
-    long endIndex = count * 0.3;
+    long beginIndex = count * 0.3;
+    long endIndex = count * 0.7;
     
     NSMutableArray * lastArr = [NSMutableArray arrayWithCapacity:0];
     for (long i = beginIndex; i < endIndex; i ++) {
@@ -460,7 +457,7 @@ int getSignalStrength()
 - (void)downloadTest2{
     _HUD.labelText = @"测速预计需要3分钟, 请稍等...";
     self.beginTime = [[NSDate date] timeIntervalSince1970]*1000;
-    [self.comments setText:@"测速预计需要3分钟, 请稍等..."];
+//    [self.comments setText:@"测速预计需要3分钟, 请稍等..."];
     [[NSURLCache sharedURLCache] removeAllCachedResponses];
     [_HUD show:YES];
     __block double line1Speed = 0;
@@ -532,7 +529,6 @@ int getSignalStrength()
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
                 _HUD.labelText = @"测速完成";
-                [_HUD hide:YES afterDelay:1];
                 [self testDone];
             }
         }
@@ -601,7 +597,6 @@ int getSignalStrength()
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
                 _HUD.labelText = @"测速完成";
-                [_HUD hide:YES afterDelay:1];
                 [self testDone];
             }
         }
@@ -667,7 +662,6 @@ int getSignalStrength()
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
                 _HUD.labelText = @"测速完成";
-                [_HUD hide:YES afterDelay:1];
                 [self testDone];
             }
         }
@@ -730,7 +724,6 @@ int getSignalStrength()
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
                 _HUD.labelText = @"测速完成";
-                [_HUD hide:YES afterDelay:1];
                 [self testDone];
             }
         }
