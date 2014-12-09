@@ -53,6 +53,7 @@
 
 @property(nonatomic) double beginTime; //测速开始时间
 @property(nonatomic) double endTime; //测速结束时间
+@property int testTime; // 测试次数；需进行4次测试。。。
 
 #define SUBMIT_RESULT 100 //提交测速结果标识
 #define SUBMIT_LOG 101 //提交日志标识
@@ -125,20 +126,40 @@
 
 // 开始测速
 - (IBAction)doTest:(id)sender{
-    if (!self.isTesting) {
-        self.isTesting = YES;
-        [self downloadTest2];
+    if ([AppDelegate isEnableWIFI]) {
+        UIAlertView* alert = [[UIAlertView alloc]initWithTitle:@"提示" message:@"为了保证测速准确性，请先关闭WIFI" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles: nil];
+        [alert show];
+    }else
+    {
+        if (!self.isTesting) {
+            self.isTesting = YES;
+            _HUD.labelText = @"测速预计需要3分钟, 请稍等...";
+            [_HUD show:YES];
+            [self downloadTest2];
+        }
     }
+    
 }
 
 // 测速完成
-- (void) testDone
+- (void) testDone:(int)testTime
 {
     if (self.isTesting) {
-        self.isTesting = NO;
         NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithInt:_nowPoint],@"point",[NSNumber numberWithInt:_Signal],@"signal",[NSNumber numberWithInt:_total],@"speed", nil];
         [self.retList addObject:dic];
-        [self uploadResult];
+        
+        // TODO 进行四次测速再上传测速结果
+        if(self.testTime == 4)
+        {
+             _HUD.labelText = @"测速完成";
+            [_HUD hide:YES afterDelay:0.5];
+            [self uploadResult];
+            self.isTesting = NO;
+        }else if(self.testTime == testTime)
+        {
+            [self downloadTest2];
+        }
+        
     }
 }
 
@@ -151,8 +172,11 @@
 // 上传测速结果
 - (void)uploadResult{
     if (_retList.count > 0 ) {
+        _HUD.labelText = @"正在提交测速结果...";
+        [_HUD show:YES];
         NSInteger signal_t = 0;
         NSInteger speed_t = 0;
+        NSLog(@"测速结果List：%@", _retList);
         for (NSDictionary *dic in _retList) {
             signal_t += [(NSNumber *)[dic objectForKey:@"signal"]intValue];
             speed_t += [(NSNumber *)[dic objectForKey:@"speed"]intValue];
@@ -200,11 +224,8 @@
         [self.request setTag:SUBMIT_RESULT];
         [self.request setPostBody:tempJsonData];
         [self.request startAsynchronous];
-        _HUD.labelText = @"正在提交测速结果...";
-        [_HUD show:YES];
         
         // 测速日志json准备...
-        
         self.endTime = [[NSDate date] timeIntervalSince1970]*1000;
         NSMutableString * log = nil;
         log = [NSMutableString stringWithFormat:@"[{\
@@ -341,44 +362,6 @@ int getSignalStrength()
 	return result;
 }
 
-// 上传速度测速
-- (void)uploadTest{
-    
-    /* 1、上传请求创建 */
-    NSError * err = nil;
-    NSMutableURLRequest *request = [[AFHTTPRequestSerializer serializer] multipartFormRequestWithMethod:@"POST" URLString:@"http://cesu.qscm.net/speedtestsvr/testupload.php" parameters:nil constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
-        
-        NSString *imagePath = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"bin"];
-        NSError * error = nil;
-        [formData appendPartWithFileURL:[NSURL fileURLWithPath:imagePath] name:@"file" fileName:@"filename.pdf" mimeType:@"image/png" error:&error];
-        NSLog(@"%@",error);
-    } error:&err];
-    NSLog(@"%@",err);
-    
-    
-    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:request];
-    __weak  AFHTTPRequestOperation *operationSet = operation;
-
-    operation.uploadSpeedMeasure.active = YES;
-    
-    /* 2、上传完成后Block回调 */
-    [operation setCompletionBlock:^(void){
-        NSLog(@"%@",@"OKOK!");
-    }];
-    
-    /* 3、上传进行时Block回调 */
-    [operation setUploadProgressBlock:^(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpected){
-//        double speedInBytesPerSecond = operation.uploadSpeedMeasure.speed;
-        NSString *humanReadableSpeed = operationSet.uploadSpeedMeasure.humanReadableSpeed;
-        
-//        NSTimeInterval remainingTimeInSeconds = [operation.uploadSpeedMeasure remainingTimeOfTotalSize:totalBytesExpected numberOfCompletedBytes:totalBytesWritten];
-        NSString *humanReadableRemaingTime = [operationSet.uploadSpeedMeasure humanReadableRemainingTimeOfTotalSize:totalBytesExpected numberOfCompletedBytes:totalBytesWritten];
-        
-        NSLog(@"UP humanReadableSpeed:%@, humanReadableRemaingTime:%@", humanReadableSpeed, humanReadableRemaingTime);
-    }];
-    [operation start];
-    
-}
 
 -(NSMutableArray *) bubble_sort:(NSMutableArray *) arr_source {
     if([arr_source count] <= 1) {
@@ -431,14 +414,14 @@ int getSignalStrength()
     
     long count = sortedArray.count;
     
-    long beginIndex = count * 0.3;
-    long endIndex = count * 0.7;
+    long beginIndex = count * 0.1;
+    long endIndex = count * 0.3;
     
     NSMutableArray * lastArr = [NSMutableArray arrayWithCapacity:0];
     for (long i = beginIndex; i < endIndex; i ++) {
         [lastArr addObject:[sortedArray objectAtIndex:i]];
     }
-    NSLog(@"%@", lastArr);
+//    NSLog(@"%@", lastArr);
     
     double allSpeeds = 0;
     for (NSNumber * str in lastArr) {
@@ -455,11 +438,9 @@ int getSignalStrength()
 }
 
 - (void)downloadTest2{
-    _HUD.labelText = @"测速预计需要3分钟, 请稍等...";
+    self.testTime++; //每测试一次，次数加1
     self.beginTime = [[NSDate date] timeIntervalSince1970]*1000;
-//    [self.comments setText:@"测速预计需要3分钟, 请稍等..."];
     [[NSURLCache sharedURLCache] removeAllCachedResponses];
-    [_HUD show:YES];
     __block double line1Speed = 0;
     __block double line1Count = 0;
     __block double line2Speed = 0;
@@ -528,8 +509,8 @@ int getSignalStrength()
                 _count = 1;
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
-                _HUD.labelText = @"测速完成";
-                [self testDone];
+//                _HUD.labelText = @"测速完成";
+                [self testDone:self.testTime];
             }
         }
         
@@ -596,8 +577,8 @@ int getSignalStrength()
                 _count = 1;
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
-                _HUD.labelText = @"测速完成";
-                [self testDone];
+//                _HUD.labelText = @"测速完成";
+                [self testDone:self.testTime];
             }
         }
         
@@ -661,8 +642,8 @@ int getSignalStrength()
                 _count = 1;
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
-                _HUD.labelText = @"测速完成";
-                [self testDone];
+//                _HUD.labelText = @"测速完成";
+                [self testDone:self.testTime];
             }
         }
         
@@ -723,8 +704,8 @@ int getSignalStrength()
                 _count = 1;
                 int n =getSignalStrength();
                 _Signal = n/2 -104;
-                _HUD.labelText = @"测速完成";
-                [self testDone];
+//                _HUD.labelText = @"测速完成";
+                [self testDone:self.testTime];
             }
         }
         

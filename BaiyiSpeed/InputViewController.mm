@@ -38,6 +38,8 @@
     NSCodingSearchBar * _citySearchBar; //城市搜索框
     NSCodingSearchBar * _collegeSearchBar; // 大学搜索框
     NSCodingSearchBar * _classroomSearchBar; //详细地址搜索框...
+    NSCodingSearchBar * _seatnumSearchBar; //座位数...
+
 }
 @property(nonatomic ,strong) NSMutableArray * cityArrays;
 @property(nonatomic ,strong) NSMutableArray * collegeArrays;
@@ -48,6 +50,7 @@
 @property (weak, nonatomic) IBOutlet UITextField *txCollege;
 @property (weak, nonatomic) IBOutlet UITextField *txCity;
 @property (weak, nonatomic) IBOutlet UITextField *txAddress;
+@property (weak, nonatomic) IBOutlet UITextField *txSeatNum;
 
 @property (weak, nonatomic) IBOutlet UIImageView *btnNext;
 @property (weak, nonatomic) IBOutlet UIControl *vContent;
@@ -82,7 +85,7 @@
 // 从db中查询所有城市
 - (void)queryCityData {
     debugMethod();
-    NSString *dbPath = [[NSBundle mainBundle] pathForResource:@"college" ofType:@"db"];
+    NSString *dbPath = [[NSBundle mainBundle] pathForResource:@"init" ofType:@"db"];
     self.cityArrays = [NSMutableArray arrayWithCapacity:1000];
     FMDatabase * db = [FMDatabase databaseWithPath:dbPath];
     if ([db open]) {
@@ -156,11 +159,13 @@
     [_citySearchBar setImage:_citySearchBar.backgroundImage forSearchBarIcon:UISearchBarIconSearch state:UIControlStateNormal];
     //[_citySearchBar setImage:_citySearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
     [_citySearchBar setImage:_citySearchBar.backgroundImage forSearchBarIcon:UISearchBarIconResultsList state:UIControlStateNormal];
+    
+//    [_citySearchBar setBackgroundColor:[UIColor clearColor]];
 //    [_citySearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
 //    _citySearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
     _citySearchBar.placeholder = @"城市";
     [_citySearchBar setHasCentredPlaceholder:NO]; // placehoder不居中
-    
+        
     _txCollege.hidden = YES;
     _collegeSearchBar = [[NSCodingSearchBar alloc] initWithFrame: CGRectMake(50, _txCollege.frame.origin.y,  _txCollege.frame.size.width+25, _txCollege.frame.size.height)];// 初始化，不解释
     [_vContent addSubview:_collegeSearchBar];
@@ -186,6 +191,22 @@
 //    _classroomSearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
     _classroomSearchBar.placeholder = @"校区楼号等详细地址信息";
     [_classroomSearchBar setHasCentredPlaceholder:NO]; // placehoder不居中
+    
+    
+    
+    _txSeatNum.hidden = YES;
+    _seatnumSearchBar = [[NSCodingSearchBar alloc] initWithFrame: CGRectMake(50 , _txSeatNum.frame.origin.y, _txSeatNum.frame.size.width+25, _txSeatNum.frame.size.height)];// 初始化，不解释
+    [_vContent addSubview:_seatnumSearchBar];
+    _seatnumSearchBar.backgroundImage = [self createImageWithColor:[UIColor clearColor]];
+    _seatnumSearchBar.delegate = self;
+    [_seatnumSearchBar setImage:_seatnumSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconSearch state:UIControlStateNormal];
+    //    [_seatnumSearchBar setImage:_seatnumSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconClear state:UIControlStateNormal];
+    [_seatnumSearchBar setImage:_seatnumSearchBar.backgroundImage forSearchBarIcon:UISearchBarIconResultsList state:UIControlStateNormal];
+    //    [_seatnumSearchBar insertSubview: [[UIImageView alloc] initWithImage: [self createImageWithColor:[UIColor clearColor]] ] atIndex:1];
+    //    _seatnumSearchBar.searchTextPositionAdjustment = UIOffsetMake(-16, 0);
+    [_seatnumSearchBar setKeyboardType:UIKeyboardTypeNumberPad];
+    _seatnumSearchBar.placeholder = @"座位数";
+    [_seatnumSearchBar setHasCentredPlaceholder:NO]; // placehoder不居中
     
     //自定义返回按钮
     UIImage *backButtonImage = [[UIImage imageNamed:@"nav_backbar.png"] resizableImageWithCapInsets:UIEdgeInsetsMake(0, 15, 0, 0)];
@@ -341,10 +362,13 @@
         if (_citySearchBar.text.length != 0 && _collegeSearchBar.text.length!=0) {
             [self getDetailAddList];
         }
-        self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 110);
+        self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 105);
     } else if (_collegeSearchBar == searchBar){ // 大学输入框点击
         [self queryCampusData]; // 查询大学信息
         self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 55);
+    } else if (_seatnumSearchBar == searchBar)
+    {
+        self.vContent.center = CGPointMake(centerPoint.x, centerPoint.y - 150);
     }
 }
 // 搜索框输入完成
@@ -433,7 +457,7 @@
 	NSInteger height = hidden ? 0 : 190;
 	[UIView beginAnimations:nil context:nil];
 	[UIView setAnimationDuration:.2];
-	[_ddList.view setFrame:CGRectMake(_txAddress.frame.origin.x  , _txAddress.frame.origin.y + 35, _txAddress.frame.size.width, height)];
+	[_ddList.view setFrame:CGRectMake(_txAddress.frame.origin.x-60  , _txAddress.frame.origin.y + 35, _txAddress.frame.size.width+80, height)];
 	[UIView commitAnimations];
 }
 
@@ -441,7 +465,7 @@
 	NSInteger height = hidden ? 0 : 140;
 	[UIView beginAnimations:nil context:nil];
 	[UIView setAnimationDuration:.2];
-	[_ddList.view setFrame:CGRectMake(_txCollege.frame.origin.x  , _txCollege.frame.origin.y + 35, _txCollege.frame.size.width, height)];
+	[_ddList.view setFrame:CGRectMake(_txCollege.frame.origin.x-60  , _txCollege.frame.origin.y + 35, _txCollege.frame.size.width+80, height)];
 	[UIView commitAnimations];
 }
 
@@ -449,7 +473,7 @@
 	NSInteger height = hidden ? 0 : 120;
 	[UIView beginAnimations:nil context:nil];
 	[UIView setAnimationDuration:.2];
-	[_ddList.view setFrame:CGRectMake(_txCity.frame.origin.x  , _txCity.frame.origin.y + 35, _txCity.frame.size.width, height)];
+	[_ddList.view setFrame:CGRectMake(_txCity.frame.origin.x -60 , _txCity.frame.origin.y + 35, _txCity.frame.size.width+80, height)];
 	[UIView commitAnimations];
 }
 
@@ -485,6 +509,7 @@
     CLGeocodeCompletionHandler handler = ^(NSArray *place, NSError *error) {
         if (place.count >0) {
             CLPlacemark *placemark = [place objectAtIndex:0];
+//            [AppDelegate debugWithDialog:[placemark.locality stringByAppendingString:placemark.administrativeArea]];
             NSString *cityStr = placemark.locality;
             if (!cityStr) {
                 cityStr = placemark.administrativeArea;
@@ -506,9 +531,10 @@
 -(IBAction)backgroundTap:(id)sender
 {
     [_collegeSearchBar resignFirstResponder];
-    [_txCity resignFirstResponder];
+    [_citySearchBar resignFirstResponder];
     //[_txAddress resignFirstResponder];
     [_classroomSearchBar resignFirstResponder];
+    [_seatnumSearchBar resignFirstResponder];
     [self searchBarSearchButtonClicked:_classroomSearchBar];
 
 }
@@ -523,15 +549,18 @@
     
     if ([_citySearchBar.text length] == 0 ||
         [_collegeSearchBar.text length] == 0 ||
-        [_classroomSearchBar.text length] == 0 ) {
+        [_classroomSearchBar.text length] == 0 ||
+        [_seatnumSearchBar.text length]==0) {
         
         NSString * str = @"";
-        if ([_collegeSearchBar.text length] == 0) {
-            str = @"城市输入框内容不能为空";
+        if ([_citySearchBar.text length] == 0) {
+            str = @"城市不能为空";
         }else if ([_collegeSearchBar.text length] == 0) {
-            str = @"地址输入框内容不能为空";
+            str = @"地址不能为空";
         } else if ([_classroomSearchBar.text length] == 0) {
-            str = @"详细地址输入框内容不能为空";
+            str = @"详细地址不能为空";
+        }else if (_seatnumSearchBar.text.length == 0){
+            str = @"座位数不能为空";
         }
         UIAlertView* alert = [[UIAlertView alloc]initWithTitle:@"提示" message:str delegate:nil cancelButtonTitle:@"确定" otherButtonTitles: nil];
         [alert show];
@@ -545,9 +574,11 @@
     info = [NSMutableString stringWithFormat:@"{\
             \"city\": \"%@\",\
             \"college\": \"%@\",\
+            \"seatNumber\": \"%d\",\
             \"address\":\"%@\"}",
             _citySearchBar.text,
             _collegeSearchBar.text,
+            _seatnumSearchBar.text.intValue,
             _classroomSearchBar.text
             ];
     app.address = _classroomSearchBar.text;
@@ -779,7 +810,7 @@
     }
     
     // 发送报文
-    const char *sendData = "GET /speedtest/test.bin HTTP/1.1\r\n Host: wwww.ixisu.com:80\r\n Connection:Keep-Alive\r\n\r\n";
+    const char *sendData = "GET /speedtest/test.bin /HTTP/1.1\r\n Host:http://ixisu.com:80\r\n Connection:Keep-Alive \r\n Cookie:pfMf_3d7c_lastvisit=1416963541,pfMf_3d7c_saltkey=ZIOwXXCP\r\n\r\n";
     int sendResult = send(socketFileDescriptor, sendData ,strlen(sendData), 0);
     if (-1 == sendResult) {
         close(socketFileDescriptor);

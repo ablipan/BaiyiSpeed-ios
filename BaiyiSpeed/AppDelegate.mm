@@ -10,21 +10,44 @@
 #import <CoreTelephony/CTCarrier.h>
 #import <CoreTelephony/CTTelephonyNetworkInfo.h>
 #import "Reachability.h"
-BMKMapManager* _mapManager;
+#import "ASIHTTPRequest.h"
+#import "Tools/MBProgressHUD.h"
+#import "JSON.h"
 
-@implementation AppDelegate 
+BMKMapManager* _mapManager;
+@interface AppDelegate()
+
+@property( nonatomic ,strong) ASIHTTPRequest * request;
+@property(nonatomic,strong)MBProgressHUD* HUD;
+@property(nonatomic) NSString *update_url;
+@end
+@implementation AppDelegate
+
+#define UPDATE_APP 100 //应用更新dialog
+
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     // Override point for customization after application launch.
     // 要使用百度地图，请先启动BaiduMapManager
-	_mapManager = [[BMKMapManager alloc]init];
-	BOOL ret = [_mapManager start:@"wOj3jKXi5EWRjnowzYLyRmiU" generalDelegate:self];
-	if (!ret) {
-		NSLog(@"manager start failed!");
-	}
-    NSLog(@"%@",[AppDelegate getCellularProviderName]);   
+//	_mapManager = [[BMKMapManager alloc]init];
+//	BOOL ret = [_mapManager start:@"wOj3jKXi5EWRjnowzYLyRmiU" generalDelegate:self];
+//	if (!ret) {
+//		NSLog(@"manager start failed!");
+//	}
+//    NSLog(@"%@",[AppDelegate getCellularProviderName]);
+    [self checkVersion];
     return YES;
+}
+
+-(void)checkVersion
+{
+    // 查询基本信息
+    NSURL *url = [NSURL URLWithString:@"http://fir.im/api/v2/app/version/540fb629cf3fdfc26a000113?token=jxhB4y7meAF0ENACYb3Hplqlt2jdRSmAngfvDDhy"];
+    self.request = [ASIHTTPRequest requestWithURL:url];
+    [self.request setDelegate:self];
+    [self.request startAsynchronous];
+
 }
 
 +(NSDictionary* )getCellularProviderName
@@ -146,6 +169,11 @@ BMKMapManager* _mapManager;
             }
             
         }
+    } else if (alertView.tag == UPDATE_APP) { //更新应用
+        if (buttonIndex == 0) {
+            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:self.update_url]];
+            exit(0);
+        }
     }
 }
 
@@ -191,8 +219,8 @@ BMKMapManager* _mapManager;
 }
 // 获得基本url信息
 + (NSString *) getBaseUrl{
-    return @"http://124.207.3.10/EmplPortal/sets/speedtest/";
-//    return @"http://www.101test.com/sets/speedtest/";
+//    return @"http://124.207.3.10/EmplPortal/sets/speedtest/";
+    return @"http://www.101test.com/sets/speedtest/";
 }
 // 是否wifi
 + (BOOL) isEnableWIFI {
@@ -215,6 +243,43 @@ BMKMapManager* _mapManager;
         exit(0);
     }];
     
+}
+
+
+#pragma mark Http请求事件
+- (void)requestStarted:(ASIHTTPRequest *)request{
+    NSLog(@"%@",@"requestStarted");
+    
+}
+
+- (void)requestFailed:(ASIHTTPRequest *)request{
+    NSLog(@"%@",request.error);
+    [_HUD setLabelText:@"请求失败"];
+    [_HUD hide:YES afterDelay:1];
+}
+
+- (void)requestFinished:(ASIHTTPRequest *)request{
+    //    NSLog(@"%@",request.responseString);
+    
+    if (request.responseStatusCode == 404) {
+        NSLog(@"%@",@"404");
+        [_HUD setLabelText:@"404你懂得"];
+        [_HUD hide:YES afterDelay:1];
+    } else {
+        NSString * respStr = request.responseString;
+        NSDictionary * dict = [respStr JSONValue];
+        NSLog(@"RET:\n%@",dict);
+        double version = [[dict objectForKey:@"version"] doubleValue];
+        double currentVersion = [[[NSBundle mainBundle] objectForInfoDictionaryKey:(NSString*)kCFBundleVersionKey] doubleValue];
+        if (version != 0) {
+            if ( currentVersion < version) {
+                self.update_url = [dict objectForKey:@"update_url"];
+                UIAlertView* alert = [[UIAlertView alloc]initWithTitle:@"应用更新" message:@"有新的版本啦，请点击更新去下载新版本!" delegate:self cancelButtonTitle:@"更新" otherButtonTitles: nil];
+                alert.tag = UPDATE_APP;
+                [alert show];
+            }
+        }
+    }
 }
 
 @end

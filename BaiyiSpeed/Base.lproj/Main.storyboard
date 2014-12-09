@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="6250" systemVersion="14B25" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" initialViewController="H8N-nn-inz">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="5056" systemVersion="14B25" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" initialViewController="H8N-nn-inz">
     <dependencies>
-        <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="6244"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="3733"/>
     </dependencies>
     <scenes>
         <!--Navigation Controller-->
@@ -36,46 +35,42 @@
                                 <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <subviews>
-                                    <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="城市" minimumFontSize="17" id="x4J-Ar-ciO">
-                                        <rect key="frame" x="63" y="85" width="229" height="30"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                        <textInputTraits key="textInputTraits"/>
-                                    </textField>
+                                    <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="input_bg.png" id="dbG-Zd-Xm3">
+                                        <rect key="frame" x="15" y="73" width="290" height="189"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                    </imageView>
                                     <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="学校或其他机构" minimumFontSize="17" id="hn0-2b-sut">
-                                        <rect key="frame" x="63" y="142" width="229" height="30"/>
+                                        <rect key="frame" x="71" y="131" width="219" height="30"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                         <textInputTraits key="textInputTraits"/>
                                     </textField>
                                     <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="校区楼号等详细地址信息" minimumFontSize="17" id="1oD-gw-Gkt">
-                                        <rect key="frame" x="63" y="201" width="229" height="30"/>
+                                        <rect key="frame" x="70" y="179" width="219" height="30"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                        <textInputTraits key="textInputTraits"/>
+                                    </textField>
+                                    <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="考场座位数" minimumFontSize="17" clearButtonMode="always" id="Dso-ib-dyM">
+                                        <rect key="frame" x="70" y="225" width="219" height="30"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                        <textInputTraits key="textInputTraits" keyboardType="numberPad"/>
+                                    </textField>
+                                    <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="城市" minimumFontSize="17" id="x4J-Ar-ciO">
+                                        <rect key="frame" x="71" y="83" width="219" height="30"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                         <textInputTraits key="textInputTraits"/>
                                     </textField>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="W9C-mU-bPe">
-                                        <rect key="frame" x="20" y="279" width="280" height="45"/>
+                                        <rect key="frame" x="28" y="273" width="261" height="45"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                         <state key="normal" title="下一步" backgroundImage="btnBg.png">
                                             <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                         </state>
                                         <connections>
                                             <action selector="next:" destination="8L4-qf-mbv" eventType="touchUpInside" id="IEU-1R-drq"/>
-                                        </connections>
-                                    </button>
-                                    <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="inputBox.png" id="BiY-j1-3Sw">
-                                        <rect key="frame" x="20" y="78" width="280" height="158"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                    </imageView>
-                                    <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="edy-tp-bgJ">
-                                        <rect key="frame" x="20" y="360" width="280" height="45"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <state key="normal" title="测试Socket下载" backgroundImage="btnBg.png">
-                                            <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                                        </state>
-                                        <connections>
-                                            <action selector="download:" destination="8L4-qf-mbv" eventType="touchUpInside" id="gJu-gY-irY"/>
                                         </connections>
                                     </button>
                                 </subviews>
@@ -90,9 +85,8 @@
                         </connections>
                     </view>
                     <navigationItem key="navigationItem" id="wLX-C1-sKu">
-                        <nil key="title"/>
                         <view key="titleView" contentMode="scaleToFill" id="G9G-RP-OuT">
-                            <rect key="frame" x="8" y="5.5" width="304" height="33"/>
+                            <rect key="frame" x="8" y="6" width="304" height="33"/>
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             <subviews>
                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="考场信息" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="kXa-aA-GX4">
@@ -121,6 +115,7 @@
                         <outlet property="txAddress" destination="1oD-gw-Gkt" id="GW1-9j-LNZ"/>
                         <outlet property="txCity" destination="x4J-Ar-ciO" id="8X1-e8-1V5"/>
                         <outlet property="txCollege" destination="hn0-2b-sut" id="Lkz-7I-tWq"/>
+                        <outlet property="txSeatNum" destination="Dso-ib-dyM" id="nXi-I5-DXi"/>
                         <outlet property="vContent" destination="rTd-jh-pyS" id="egV-Ne-Tv2"/>
                         <segue destination="XTD-nQ-AxI" kind="push" identifier="pushTest" id="ly2-0Z-qsE"/>
                     </connections>
@@ -180,7 +175,7 @@
                     <navigationItem key="navigationItem" id="j21-BF-7vp">
                         <nil key="title"/>
                         <view key="titleView" contentMode="scaleToFill" id="ivS-ki-aMK">
-                            <rect key="frame" x="8" y="5.5" width="304" height="33"/>
+                            <rect key="frame" x="8" y="6" width="304" height="33"/>
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             <subviews>
                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="考场测速" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="haS-w8-Llr">
@@ -219,7 +214,7 @@
     <resources>
         <image name="bg.png" width="320" height="568"/>
         <image name="btnBg.png" width="274" height="43"/>
-        <image name="inputBox.png" width="265" height="164"/>
+        <image name="input_bg.png" width="290" height="189"/>
     </resources>
     <simulatedMetricsContainer key="defaultSimulatedMetrics">
         <simulatedStatusBarMetrics key="statusBar"/>
